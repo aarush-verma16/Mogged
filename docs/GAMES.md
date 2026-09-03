@@ -16,20 +16,20 @@ Must satisfy all of:
 
 | Stage | Title | Steam AppID | Why |
 | --- | --- | --- | --- |
-| Smoke (free) | **Aperture Desk Job** (default) | `1902490` | Free, small, Valve, no AC, Windows/Linux only, no Mac native. Proves: prefix + Steam + Play. **Does not prove D3D12** (Source 2 / Vulkan). |
+| Smoke (free) | **Aperture Desk Job** (default) | `1902490` | Free, small, Valve, no AC, Windows/Linux only, no Mac native. Proves: Mogged Play plumbing. **Does not prove D3D12** (Source 2 / Vulkan). |
 | DX smoke (free, optional) | Path of Exile or Dota 2 | `238960` / `570` | Free DirectX-class GPU load before buying Spider-Man. PoE: DX11, no kernel AC. Dota 2: commonly used in GPTK benches; VAC; heavier. |
 | **Primary demo** | **Marvel's Spider-Man Remastered** | `1817070` | The actual proof. DX12, Insomniac/Nixxes, no AC, ProtonDB Platinum, CrossOver-playable, real GPU cost, FSR available (DLSS will not translate). |
-| Generalize | TBD in Phase 3 | — | Different engine **and** different API than Spider-Man. Pick after Phase 2 numbers exist. |
+| Generalize | TBD in **M4** | — | Different engine **and** different API than Spider-Man. Pick after M3 numbers exist. |
 | Explicitly not MVP | Elden Ring, Nightreign, competitive shooters | — | Heavier FromSoftware quirks, EAC in some modes. Public-demo bait, not the first proof. |
 
 Change the smoke title if needed; **do not change the primary demo** without an ADR. Profiles live in `/profiles`.
 
-## Smoke shortlist (pick one this week)
+## Smoke shortlist (lock during M0)
 
 Ranked for *small tests before Spider-Man*:
 
 1. **Aperture Desk Job** (`1902490`) — smallest honest "Windows game on Steam." Needs a controller. Graphics path ≠ Spider-Man.
-2. **osu!** (`776387`) — tiny download, D3D/GL, no AC. Almost too light; good for "did Wine start."
+2. **osu!** (`776387`) — tiny download, D3D/GL, no AC. Almost too light; good for "did the runtime start."
 3. **Alien Swarm: Reactive Drop** (`563560`) — free Source/DX9 shooter, no kernel AC. Tests older D3D, not D3D12.
 4. **Path of Exile** (`238960`) — free, DX11, real load, large download. Best *free* predictor of translation-layer pain besides Spider-Man.
 5. **Dota 2** (`570`) — free, Source 2, used in published GPTK/CrossOver benches. VAC + live service; use only if we need a GPTK-comparison datapoint.

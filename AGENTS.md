@@ -1,52 +1,56 @@
 # Agent instructions
 
-Read this file before changing anything. Then read the docs listed for the task. Do not improvise a different product.
+Read this file before changing anything. Then read the docs for the task. Do not improvise a different product.
 
 ## What Mogged is
 
-A dedicated Mac app. User clicks Play. A Windows PC game runs on Apple Silicon at near-native quality. **Zero user-facing Windows / Wine / bottle / prefix / GPTK / VM language.** Internal docs and logs may use those words. The app, screenshots, and demo copy may not.
+A **native macOS desktop app** (Swift). The user clicks Play. A Windows PC game runs on Apple Silicon at near-native quality.
+
+Mogged is the product. It is not a Wine app, not a GPTK wrapper with a coat of paint, not a bottle manager. User-visible copy, screenshots, and demo talk never mention Windows internals, Wine, GPTK, Proton, bottles, prefixes, or VMs.
 
 ## Source of truth
 
 | Topic | File |
 | --- | --- |
 | Why this exists | [docs/VISION.md](docs/VISION.md) |
-| Stack and layering | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| **What to do next** | [docs/MILESTONES.md](docs/MILESTONES.md) |
+| Where we are | [docs/STATUS.md](docs/STATUS.md) |
+| Stack | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | What we may ship | [docs/LEGAL.md](docs/LEGAL.md) |
-| Which games, and why | [docs/GAMES.md](docs/GAMES.md) |
-| What to build next | [docs/PHASES.md](docs/PHASES.md) |
-| Locked vs open calls | [docs/DECISIONS.md](docs/DECISIONS.md) |
+| Titles | [docs/GAMES.md](docs/GAMES.md) |
+| ADRs | [docs/DECISIONS.md](docs/DECISIONS.md) |
 | Metrics | [docs/TELEMETRY.md](docs/TELEMETRY.md) |
-| Where we actually are | [docs/STATUS.md](docs/STATUS.md) |
-| Immediate work | [docs/WEEK-ONE.md](docs/WEEK-ONE.md) |
 | Terms | [docs/GLOSSARY.md](docs/GLOSSARY.md) |
 
-Update `docs/STATUS.md` and `docs/DECISIONS.md` when a phase exit criterion is hit or a Decision is made. Do not leave those files stale.
+When a milestone exit is hit or a Decision is made, update `docs/STATUS.md`, `docs/MILESTONES.md`, and `docs/DECISIONS.md` in the same change.
+
+There is no week-based plan. Do not add one.
 
 ## Title ladder (locked)
 
-- Smoke / plumbing: free Windows Steam game (default: Aperture Desk Job, Steam `1902490`).
-- Primary demo: Marvel's Spider-Man Remastered (Steam `1817070`).
-- Not MVP: Elden Ring, kernel anti-cheat titles, live-service shooters.
+- Smoke: free Windows Steam game (default Aperture Desk Job, `1902490`).
+- Primary demo: Marvel's Spider-Man Remastered (`1817070`).
+- Not MVP: Elden Ring, kernel anti-cheat, live-service shooters.
 
-Game-specific knobs live in `profiles/*.json`, never hardcoded in the launcher.
+Knobs live in `profiles/*.json`, never hardcoded in the launcher.
 
 ## Engineering rules
 
-1. **Wrap, don't rewrite.** Wine / CrossOver / D3DMetal / DXVK / MoltenVK are the translation stack. Our code is the supervisor, profiler, and UX.
-2. **GPTK is eval-only.** Install it locally. Benchmark with it. Do not vendor, fork-and-ship, or bundle Apple's toolkit in the app until legal says otherwise. Shipping path is Wine (LGPL-compliant) or a licensed CrossOver/OEM arrangement.
-3. **Invisible runtime.** Prefixes, bottles, winetricks, and env vars are implementation details. The user-facing verb is Play.
-4. **Measure, don't vibe.** Any performance claim needs `tools/benchmark` output (FPS, frame-time percentile, hitch count). See `docs/TELEMETRY.md`.
-5. **Speed over calendar.** Phase numbers are order, not weeks. Take the shortest path to the next proof.
-6. **Stay in MVP scope.** No cloud, no store, no anti-cheat, no third title, no brand polish pass.
+1. **Desktop app first.** All user-facing work lives in `apps/launcher/` as a real Mac app.
+2. **Hidden runtime.** `runtime/` may spawn an eval/shipping backend. The app never looks like a toolkit.
+3. **Do not write a Windows/DirectX translator.** Embed or call a backend; concentrate on detection, profiles, caches, input, telemetry, Play.
+4. **GPTK is eval-only.** Local install for testing is fine. Do not bundle Apple's toolkit. Shipping implications: [docs/LEGAL.md](docs/LEGAL.md).
+5. **Measure.** Performance claims need `tools/benchmark` output ([docs/TELEMETRY.md](docs/TELEMETRY.md)).
+6. **Current milestone only.** Finish exit criteria in `docs/MILESTONES.md` before optional work on the next one.
+7. **MVP scope.** No cloud, store, anti-cheat, third title, or brand system.
 
 ## Where to put new code
 
 | Kind of change | Location |
 | --- | --- |
-| macOS UI, detection, Play button | `apps/launcher/` |
-| Process spawn, prefix, env, Wine/GPTK glue | `runtime/` |
-| Per-game flags and workarounds | `profiles/` |
+| macOS UI, detection, Play | `apps/launcher/` |
+| Process spawn, env, engine glue | `runtime/` |
+| Per-game flags | `profiles/` |
 | FPS / latency / crash capture | `tools/benchmark/` |
 | One-off setup | `scripts/` |
 | Strategy, ADRs, legal | `docs/` |
@@ -54,6 +58,7 @@ Game-specific knobs live in `profiles/*.json`, never hardcoded in the launcher.
 ## Do not
 
 - Mention Wine, GPTK, CrossOver, Proton, or bottles in user-visible strings.
-- Add a game that fails `docs/GAMES.md` criteria without an ADR.
+- Add a game that fails `docs/GAMES.md` without an ADR.
 - Commit game binaries, Steam libraries, prefixes, GPTK DMGs, or shader caches.
 - Treat a GPTK-only success as a shippable architecture.
+- Reintroduce week numbers or calendars into the plan.

@@ -1,17 +1,16 @@
 # Runtime
 
-Hidden supervisor around a Wine-class translation stack.
+Hidden process behind Mogged.app. Not user-facing.
 
-**Status:** not started. Phase 1. Decision 1 (which binary we spawn) is still open.
+**Status:** not started. **M1.** Decision 1 (which backend we spawn) is still open.
 
 ## Intended shape
 
-- Create/update a prefix per title (or a shared Steam prefix).
-- Apply profile env/args.
-- Spawn the Windows exe without a TTY workflow.
-- Stream logs + crash wrappers for `tools/benchmark`.
+- Apply profile env/args and spawn the Windows exe.
+- Persist shader/PSO caches.
+- Stream logs for `tools/benchmark`.
 - Backend names: `d3dmetal` | `dxvk-moltenvk` | `moltenvk` | `vkd3d-moltenvk`.
 
-Config should point at a Wine/CrossOver/GPTK *eval* install on disk. This tree must not contain GPTK or CrossOver.app.
+Point at a local eval install via config. Do not put GPTK or CrossOver.app in this tree.
 
 See `.cursor/rules/runtime.mdc`, `docs/ARCHITECTURE.md`, `docs/LEGAL.md`.

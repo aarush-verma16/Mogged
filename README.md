@@ -1,48 +1,33 @@
 # Mogged
 
-A Mac app that launches Windows PC games on Apple Silicon. Open the app, click Play, the game runs well. The player never sees Windows, Wine, bottles, or virtualization.
+Native **macOS desktop app** for playing Windows PC games on Apple Silicon. Open Mogged, click Play, the game runs well.
 
-This repository is a **monorepo** for the MVP. The proof is not a compatibility database. The proof is one demanding title running at near-native quality through a product UX.
+This is not a compatibility manager, not a bottle GUI, and not a Wine/CrossOver frontend. The product is the app. How a Windows title is executed is a hidden runtime, not the identity of the company.
 
-## Proof ladder
+## Follow this
 
-1. **Smoke (free Steam title)** — anything Windows boots from Mogged with no config file. Default candidate: *Aperture Desk Job*.
-2. **Primary demo** — *Marvel's Spider-Man Remastered* running well (FPS, frame pacing, input latency).
-3. **Generalization** — a second, different-engine title through the same profile pipeline, with less manual work than the first.
+**[docs/MILESTONES.md](docs/MILESTONES.md)** — the only plan. Milestones have exit criteria. No weeks, no calendar.
 
-Elden Ring is **not** on the MVP path.
+Current snapshot: [docs/STATUS.md](docs/STATUS.md).
 
-## What we build vs what we wrap
+Proof titles: free Steam smoke game → *Marvel's Spider-Man Remastered* → a second engine later. Elden Ring is not MVP.
 
-| Layer | Who owns it |
-| --- | --- |
-| Windows API / syscall translation | Wine (LGPL) or CrossOver. GPTK is for **evaluation only**. |
-| DirectX → Metal | D3DMetal (preferred) or DXVK + MoltenVK |
-| Product | Us: detection, per-title profiles, shader cache, input, telemetry, Play UX |
-
-Do not write a translation layer. Wrap one, hide it, tune titles.
-
-## Repo map
+## Repo
 
 ```
-apps/launcher/     macOS app (Swift) — the only user-facing surface
-runtime/           hidden translation-stack supervisor
-profiles/          per-title JSON (flags, shaders, input, known issues)
-tools/benchmark/   repeatable FPS / frametime / latency harness
-docs/              source of truth for product, stack, legal, titles
+apps/launcher/     native macOS desktop app (Swift) — what the user runs
+runtime/           hidden game runtime (process, env, caches)
+profiles/          per-title JSON
+tools/benchmark/   FPS / frametime / latency harness
+docs/              product + architecture + legal
 ```
 
-Start here:
-
-- Humans: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [docs/PHASES.md](docs/PHASES.md)
-- Agents: [AGENTS.md](AGENTS.md)
-- This week's work: [docs/WEEK-ONE.md](docs/WEEK-ONE.md)
-- Current snapshot: [docs/STATUS.md](docs/STATUS.md)
+Also: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [AGENTS.md](AGENTS.md).
 
 ## Non-goals (MVP)
 
-No cloud/remote rendering. No anti-cheat / online multiplayer. No store, library sync, or monetization. No support matrix beyond the proof ladder. UI only has to be functional and non-embarrassing.
+No cloud. No anti-cheat / online multiplayer. No store or monetization. No support matrix. UI: functional, not a brand system.
 
 ## License
 
-Our code is proprietary until we say otherwise. Wine, DXVK, MoltenVK, and Apple GPTK keep their own licenses — see [docs/LEGAL.md](docs/LEGAL.md). GPTK must not be redistributed inside the product.
+Our app code is proprietary. Third-party runtimes and toolkits keep their own licenses — [docs/LEGAL.md](docs/LEGAL.md). Do not redistribute Apple's Game Porting Toolkit inside Mogged.

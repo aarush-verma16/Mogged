@@ -6,10 +6,10 @@ alwaysApply: false
 
 # Docs
 
-`docs/STATUS.md` is the snapshot; `docs/DECISIONS.md` is append-only ADRs. If a phase gate is hit or a backend is chosen, update both in the same change.
+`docs/MILESTONES.md` is the plan. `docs/STATUS.md` is the snapshot. `docs/DECISIONS.md` is append-only ADRs. When a milestone exit is hit, update all three in the same change.
 
-Do not put calendar-week promises in docs. Phases are proof order.
+No week numbers, sprint calendars, or "this week" headings. Milestones have exit criteria only.
 
-Title facts belong in `docs/GAMES.md` plus `profiles/`. Do not invent a second compatibility database.
+Title facts belong in `docs/GAMES.md` plus `profiles/`.
 
-When you mention GPTK, say eval-only unless ADR-002 has been accepted as a ship strategy (it has not).
+Mogged is a desktop app. Do not describe it as a Wine/GPTK/CrossOver product. GPTK is eval-only unless ADR-002 says otherwise (it does not).

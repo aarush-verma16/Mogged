@@ -2,7 +2,7 @@
 
 Repeatable FPS / frame-time / hitch / latency capture.
 
-**Status:** not started. Skeleton the logger in Phase 1 even if the HUD is developer-only. Phase 2 is judged by this folder.
+**Status:** not started. Log in M1 even if the HUD is developer-only. **M3** is judged by this folder.
 
 ## Intended output
 

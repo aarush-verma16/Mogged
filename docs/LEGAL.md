@@ -1,6 +1,8 @@
 # Legal and license posture
 
-This is Decision 2. **Local evaluation can start now. Redistributing a translation stack cannot.** Treat this file as blocking for any binary we would give another person.
+Mogged.app (our Swift desktop app, profiles, benchmark) is proprietary. This file is only about **third-party engines and toolkits** we must not accidentally ship.
+
+Decision 2: **Local evaluation can start now. Redistributing someone else's runtime cannot** until counsel signs off. Blocking for any binary we would give another person.
 
 This is not legal advice. Get a lawyer before the first external build. Record the outcome in [DECISIONS.md](DECISIONS.md).
 
@@ -51,11 +53,10 @@ We launch games the user already owns. We do not redistribute Spider-Man, Steam,
 
 ## Founder task (not skippable)
 
-Before Phase 1 code is treated as "the product":
+Before we treat Mogged as something we **share** (M1+ binaries leaving this Mac):
 
 1. Read the current GPTK license text in the Apple Developer download, not a blog summary.
-2. Read Wine LGPL obligations for a macOS app bundle.
-3. Decide: **Wine wrap**, **CrossOver OEM**, or **kill the distribution model**.
-4. Write the answer into `docs/DECISIONS.md` as ADR-002.
+2. Decide how a shipping `.app` may legally execute Windows games (OEM backend, OSS embed with compliance, or local-only until that's solved).
+3. Write the answer into `docs/DECISIONS.md` as ADR-002.
 
-Phase 0 engineering (getting a game to boot locally) does not wait on (3). Any **shared** build does.
+M0 (getting a game to boot locally on our Mac) does not wait on (2). Any **shared** build does.

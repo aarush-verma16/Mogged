@@ -6,12 +6,12 @@ alwaysApply: false
 
 # Launcher
 
-Swift + SwiftUI unless an ADR says otherwise. This is the only user-facing process.
+This **is** the product: a native macOS desktop app (Swift + SwiftUI).
 
-- Verbs: Play, Stop. No bottle manager, Windows-version picker, or winetricks screen.
-- Detection: Steam libraries + profile exe hints + a folder picker for stubborn installs.
-- Talking to the runtime: a local CLI or XPC. No cloud API.
+- Verbs: Play, Stop. No toolkit screens, Windows-version pickers, or engine-config panels.
+- Detection: Steam libraries + profile exe hints + a folder picker.
+- Talk to `runtime/` over local CLI or XPC. No cloud API.
 - Copy: never Wine, GPTK, CrossOver, Proton, prefix, bottle.
-- Title logic: load `profiles/*.json`. If you need a new flag, add it to the schema first.
+- Title logic: load `profiles/*.json`. New flags go in the schema first.
 
-Keep UI functional. Do not build a store, account system, or animated brand shell.
+Keep UI functional. No store, accounts, or animated brand shell.

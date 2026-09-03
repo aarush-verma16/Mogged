@@ -1,7 +1,7 @@
 # Scripts
 
-Machine-local setup helpers (GPTK/CrossOver install notes, prefix wipe, log scoop).
+Machine-local setup helpers (eval-toolkit install notes, environment wipe, log scoop).
 
-Keep scripts **idempotent** and **non-secret**. They may *print* paths to `/opt` or `~/Library` but must not copy GPTK/CrossOver into git.
+Keep scripts **idempotent** and **non-secret**. They may print paths but must not copy GPTK/CrossOver into git.
 
-Nothing here yet — add when WEEK-ONE has been run once by a human and the commands are known not to be a 2023 blog recipe.
+Nothing here yet — add after M0 has been run once on a real Mac and the commands match current Apple/CodeWeavers docs.

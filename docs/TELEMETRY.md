@@ -1,22 +1,22 @@
 # Telemetry and quality bar
 
-If it is not in a log, it did not happen. Phase 1 records these. Phase 2 is judged by them.
+If it is not in a log, it did not happen. M1 records these. M3 is judged by them.
 
 ## Always capture
 
 | Signal | What good looks like | Notes |
 | --- | --- | --- |
 | Average FPS | See title bars below | Exclude menus / loading |
-| 1% / 0.1% lows | Close to average (pacing) | Hitching is the usual Wine tell |
+| 1% / 0.1% lows | Close to average (pacing) | Hitching is usually shader/PSO compile |
 | Frame time stdev / hitch count | Hitch = frame ≥ 2× median | Shader compile spikes belong here |
 | Input latency | Controller and KBM, ms click-to-photon if we can; else click-to-swap | "Mapped" ≠ "fast" |
 | Load time to first gameplay | Trend down after cache warm | First-run vs second-run is the shader story |
-| Crash / hang | Zero in a 30 min scripted path | Keep full Wine/GPTK log internally |
+| Crash / hang | Zero in a 30 min scripted path | Keep full backend logs internally; never in the UI |
 | GPU / CPU power (optional) | Not a ship gate | Useful vs thermal throttling on laptops |
 
 Store raw runs under `tools/benchmark/results/` (gitignored except fixtures). One JSON per run: title id, git sha, Mac model, backend (`d3dmetal` / `dxvk-moltenvk`), preset, resolution, upscaler, first-run yes/no.
 
-## Spider-Man Remastered (Phase 2 gate)
+## Spider-Man Remastered (M3 gate)
 
 Target Mac: the Apple Silicon machine we actually demo on. Write the model into `STATUS.md` when we know it.
 
@@ -28,7 +28,7 @@ Working bar (revise with an ADR if the hardware is an Air vs a Max):
 
 Compare against a Windows PC at the same resolution and a similar preset (FSR vs DLSS Quality is the fair swap). The video is the artifact; the JSON is the argument.
 
-## Smoke title (Phase 1 gate)
+## Smoke title (M1 gate)
 
 No FPS heroics. Gates:
 

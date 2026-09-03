@@ -1,18 +1,19 @@
 # Docs
 
-Read in this order if you are new: [VISION](VISION.md) → [GAMES](GAMES.md) → [ARCHITECTURE](ARCHITECTURE.md) → [LEGAL](LEGAL.md) → [PHASES](PHASES.md) → [STATUS](STATUS.md).
+Read in this order: [VISION](VISION.md) → [MILESTONES](MILESTONES.md) → [GAMES](GAMES.md) → [ARCHITECTURE](ARCHITECTURE.md) → [LEGAL](LEGAL.md) → [STATUS](STATUS.md).
 
 | File | Job |
 | --- | --- |
-| [VISION.md](VISION.md) | Product thesis |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Layers, graphics paths, what we write |
-| [LEGAL.md](LEGAL.md) | Wine / GPTK / CrossOver / Steam |
+| [VISION.md](VISION.md) | Product thesis — native Mac desktop app |
+| [MILESTONES.md](MILESTONES.md) | **The plan.** Exit criteria, no dates |
+| [STATUS.md](STATUS.md) | What is true today |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Desktop app + hidden runtime |
+| [LEGAL.md](LEGAL.md) | What we may ship vs eval-only toolkits |
 | [GAMES.md](GAMES.md) | Title criteria and ladder |
-| [PHASES.md](PHASES.md) | Proof order |
 | [TELEMETRY.md](TELEMETRY.md) | FPS / hitch / latency bars |
 | [DECISIONS.md](DECISIONS.md) | ADRs |
 | [GLOSSARY.md](GLOSSARY.md) | Internal words |
-| [STATUS.md](STATUS.md) | What is true today |
-| [WEEK-ONE.md](WEEK-ONE.md) | Immediate hands-on |
 
-Agents: also read `/AGENTS.md` at repo root.
+Agents: `/AGENTS.md` at repo root.
+
+There is no week-based or calendar plan. Do not add one.

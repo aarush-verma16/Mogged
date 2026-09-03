@@ -1,23 +1,22 @@
 ---
 name: mogged-orientation
-description: Loads Mogged product context, proof ladder, and source-of-truth docs. Use at the start of non-trivial work, when the user asks what Mogged is, or when planning runtime, launcher, or title work.
+description: Loads Mogged product context, milestones, and source-of-truth docs. Use at the start of non-trivial work, when the user asks what Mogged is, or when planning runtime, launcher, or title work.
 ---
 
 # Mogged orientation
 
-Before coding, read (in order, stop if the task is tiny):
+Before coding, read:
 
 1. `/AGENTS.md`
-2. `/docs/STATUS.md`
-3. Task-specific: `/docs/GAMES.md`, `/docs/ARCHITECTURE.md`, `/docs/LEGAL.md`, `/docs/TELEMETRY.md`
+2. `/docs/STATUS.md` (current milestone)
+3. `/docs/MILESTONES.md` (the plan)
+4. Task-specific: `/docs/GAMES.md`, `/docs/ARCHITECTURE.md`, `/docs/LEGAL.md`, `/docs/TELEMETRY.md`
 
 ## Reminders
 
-- Product: Play on Mac. No user-facing Wine/GPTK.
-- Wrap a translation stack. Do not write one.
-- GPTK = local eval. Ship = Wine or CrossOver OEM (`docs/LEGAL.md`).
-- Smoke = free Steam game (Aperture Desk Job unless STATUS says otherwise). Demo = Spider-Man Remastered. Not Elden Ring.
-- Game knobs go in `profiles/*.json`.
-- After a decision or phase gate, update `docs/STATUS.md` and `docs/DECISIONS.md`.
-
-If the user asks to "just add GPTK to the app," refuse and point at LEGAL.md.
+- Product: native Mac desktop app. Play. Not a toolkit frontend.
+- Plan: milestones with exit criteria. No weeks.
+- Do not write a Windows/DX translator. Hidden runtime + profiles + telemetry.
+- GPTK = local eval only (`docs/LEGAL.md`).
+- Smoke = free Steam game. Demo = Spider-Man Remastered. Not Elden Ring.
+- After a milestone or decision, update STATUS, MILESTONES, DECISIONS.

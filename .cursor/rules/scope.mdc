@@ -5,16 +5,18 @@ alwaysApply: true
 
 # Scope
 
-Do not build: cloud/remote rendering, a store, library sync, monetization, anti-cheat titles, online multiplayer, a 10-title matrix, a Wine GUI, or brand polish beyond functional.
+Do not build: cloud/remote rendering, a store, library sync, monetization, anti-cheat titles, online multiplayer, a 10-title matrix, a compatibility control panel, or brand polish beyond functional.
+
+Follow `docs/MILESTONES.md`. Do not invent week-based plans.
 
 ## License
 
-GPTK is eval-only on our Macs. Do not vendor Apple's toolkit, require users to install GPTK, or copy CrossOver internals. Shipping path is LGPL Wine or a CrossOver OEM license — see `docs/LEGAL.md`. Local GPTK/CrossOver installs for testing are expected.
+GPTK is eval-only on our Macs. Do not vendor Apple's toolkit or require users to install it. Do not copy CrossOver internals. See `docs/LEGAL.md`. Local GPTK/CrossOver installs for M0 testing are expected.
 
 ## Git hygiene
 
-Never commit game binaries, Steam libraries, Wine prefixes, GPTK/CrossOver apps, DMGs, shader caches, or secrets.
+Never commit game binaries, Steam libraries, prefixes, GPTK/CrossOver apps, DMGs, shader caches, or secrets.
 
 ## UI copy
 
-User-visible strings: Play, Installing, Updating, Running. Not "creating bottle" or "Wine 10.0".
+User-visible strings: Play, Installing, Updating, Running. Never toolkit, bottle, prefix, or Windows-version names.

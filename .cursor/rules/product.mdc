@@ -5,18 +5,23 @@ alwaysApply: true
 
 # Mogged
 
-Windows PC games on Apple Silicon, launched from a Mac app. Open app → Play → game runs well. Users never see Windows, Wine, bottles, prefixes, GPTK, Proton, or VMs.
+Native macOS **desktop app**. Open Mogged → Play → Windows PC game runs well on Apple Silicon.
 
-## Proof ladder
+Not a compatibility manager. Not a toolkit frontend. The product is the app.
 
-1. Free Steam smoke title launches from our shell (default: Aperture Desk Job).
-2. Marvel's Spider-Man Remastered is the quality demo — not Elden Ring.
-3. A second different-engine title later proves the pipeline, not a one-off.
+## Proof order
 
-## Build vs wrap
+Follow `docs/MILESTONES.md`. No weeks, no calendar.
 
-Do not write a Windows translation layer. Wrap Wine/CrossOver/D3DMetal. Our code is detection, `profiles/*.json`, shader/PSO cache, input, telemetry, and the Play UX.
+1. M0 machine + smoke title eval
+2. M1 Play launches the free Steam smoke title
+3. M2–M3 Marvel's Spider-Man Remastered boots, then hits the quality bar
+4. M4 second different-engine title
 
-## Speed
+Elden Ring is not MVP.
 
-Phase numbers are order, not weeks. Take the shortest path to the next proof. Measure FPS; do not claim "feels native" without a benchmark file.
+## Build
+
+Write the Swift desktop app, profiles, caches, input, telemetry. Do not write a Windows/DirectX translator. Do not build a bottle GUI.
+
+Measure FPS; do not claim "feels native" without a benchmark file.
