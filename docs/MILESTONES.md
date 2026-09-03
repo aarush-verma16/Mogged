@@ -22,16 +22,17 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 - [x] Repo, docs, rules, and title profiles exist.
 - [x] Native Mac app identity is the product (not a compatibility GUI). Locked in ADRs.
 - [x] Apple Silicon Mac recorded in STATUS (`sw_vers`, chip).
-- [ ] A Windows game or Windows Steam client boots on this Mac through at least one eval backend (GPTK and/or CrossOver — local testing only).
-- [ ] The same **smoke title** is attempted on GPTK and CrossOver; notes in STATUS.
-- [ ] GPTK license text from Apple's download is read; 3–5 sentences in ADR-002.
+- [ ] Wine (free, LGPL) runs a Windows `.exe` on this Mac — via Homebrew or Whisky's open-source build.
+- [ ] DXVK + MoltenVK path tested: smoke title (Aperture Desk Job or a free Steam Windows game) reaches pixels.
+- [ ] Notes in STATUS: Wine version, DXVK version, what ran, what broke.
+- [ ] No paid software used at any point. No CrossOver. No GPTK.
 - [ ] Smoke title confirmed or swapped using [GAMES.md](GAMES.md).
 
-**Work:** Install eval tools on the Mac. Do not commit them. Get pixels. Confirm Aperture Desk Job (or the next free Steam game). Start the Swift app skeleton as soon as a backend leaning exists — do not wait for a memo.
+**Work:** Homebrew install Wine + DXVK. Run the smoke title manually. Record what worked. Start wiring `runtime/` as soon as the free stack boots anything.
 
-**Not this milestone:** FPS targets, Spider-Man as the first boot, UI polish, shipping a binary to anyone else.
+**Not this milestone:** FPS targets, Spider-Man, UI polish, shipping to anyone.
 
-**Eval backends (local only):** Download GPTK for *this* macOS from Apple Developer. Install CrossOver. Same smoke title on both. Table in STATUS: booted? manual steps? playable? That table is Decision 1 evidence. GPTK/CrossOver are test harnesses, not the product. See [LEGAL.md](LEGAL.md).
+**Stack (all free):** Wine (LGPL) → DXVK/vkd3d-proton → MoltenVK → Metal. See [BUILD.md](BUILD.md) for the full breakdown.
 
 ---
 
