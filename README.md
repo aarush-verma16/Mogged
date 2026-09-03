@@ -31,7 +31,7 @@ Also: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [docs/BR
 ```bash
 git checkout dev
 npm test
-npm run bootstrap   # Homebrew Wine + MoltenVK, once
+npm run bootstrap   # Gcenx Wine + MoltenVK + DXVK-macOS, once
 npm start
 ```
 

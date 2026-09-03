@@ -44,7 +44,7 @@ We launch games the user already owns. We do not redistribute Spider-Man, Steam,
 
 | Action | Allowed now? |
 | --- | --- |
-| Install Homebrew Wine + MoltenVK on this Mac | Yes |
+| Install Gcenx Wine + Homebrew MoltenVK + DXVK-macOS on this Mac | Yes |
 | Buy or install CrossOver / GPTK | **No** — [BUILD.md](BUILD.md) |
 | Benchmark titles, write profiles, build the launcher against a swap-able runtime interface | Yes |
 | Commit game files, Steam tokens, GPTK DMGs, CrossOver.app, Wine prefixes | No |

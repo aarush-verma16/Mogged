@@ -6,6 +6,12 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-011 — v1 runs on this Mac; we own the optimization layer
+
+- **Status:** accepted
+- **Decision:** First version executes **on this Apple Silicon Mac**. No cloud, no second PC. Translation is Wine + DXVK/vkd3d-proton + MoltenVK (we do not write ntdll/D3D). **Our** code is the optimization layer: FPS cap from thermal state, FSR/MetalFX instead of native 4K, ray tracing off, shader cache, operator HUD. Goal is heavy Windows games that stay smooth and do not cook the machine. “Highest graphics” means best *look* under that budget, not RT + native 4K.
+- **Why:** Founder locked v1 to this Mac. Smooth + cool is the product. Max preset that melts the chassis is a fail.
+
 ## ADR-010 — First titles: Apex Legends and Marvel Rivals
 
 - **Status:** accepted

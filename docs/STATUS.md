@@ -13,27 +13,48 @@ Done:
 - Repo, docs, rules, profiles.
 - Desktop-app identity (ADR-006).
 - `dev` / `main` workflow.
-- Native SwiftUI **operator** console: Wine, prefix, PID, env, Steam disk, live logs. Apex then Rivals pinned. Spider-Man not shown unless Steam has it.
-- Runtime tests cover profile decode, user-facing copy, install lookup, and launch/stop through a fake Wine.
+- Native SwiftUI **operator** console: Wine, prefix, PID, env, Steam disk, live logs, optimization policy. Apex then Rivals pinned. Spider-Man not shown unless Steam has it.
+- Runtime tests cover profile decode, user-facing copy, install lookup, launch/stop through a fake Wine, and thermal FPS caps.
 - `RuntimeSupervisor.launch` creates a per-title environment, execs Wine, tracks PID, writes JSONL, Stop kills the process.
-- Decision 1 accepted: free Wine + DXVK + vkd3d-proton + MoltenVK. No paid software.
+- Optimization layer: thermal → FPS cap (60/40/30), FSR Quality, RT off (ADR-011). v1 is **this Mac**.
+- Translation engine is on disk and probed: Gcenx Wine Staging **11.16** ran `cmd.exe` (`mogged-ok`). MoltenVK sees **Apple M4 Pro**. DXVK-macOS `d3d11.dll` + `d3d10core.dll` in `third_party/dxvk/x64`.
 
 Not done:
 
-- Wine is **not installed** on this Mac yet. Run `npm run bootstrap`.
-- Smoke title not installed / not booted.
-- DXVK / vkd3d-proton / MoltenVK not vendored in `third_party/` yet.
+- No Apex / Rivals / Steam library on this Mac. Play has nothing to exec except after Locate.
+- Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
+- vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
+- No game has drawn pixels. No FPS number. Do not claim smoothness.
 
 ## Hardware
 
 - Chip: Apple M4 Pro
 - OS: macOS 26.5.2 (25F84), arm64
 - Xcode 26.4.1, Swift 6.3.1
+- Unified memory seen by MoltenVK: ~18 GB GPU-available
+
+## On-device stack (this Mac)
+
+| Piece | Version / path | State |
+| --- | --- | --- |
+| Wine | Staging 11.16 (Gcenx), x86_64 via Rosetta | **runs Windows PE** (`cmd.exe`) |
+| MoltenVK | Homebrew 1.4.2; Wine also bundled 1.4.0 | present, enumerated M4 Pro |
+| DXVK-macOS | v1.10.3-20230507-repack (`d3d11`, `d3d10core` only) | DLLs on disk, not game-tested |
+| vkd3d-proton | — | missing |
+| GStreamer.framework | — | missing (cask Gatekeeper-disabled) |
+| Optimization layer | `OptimizationLayer.swift` | wired into launch env |
+
+Wine binary: `~/Library/Application Support/Mogged/engine/Wine Staging.app/Contents/Resources/wine/bin/wine`
+
+`mogged-runtime detect` → that path.
+
+macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. Expected: Gcenx builds are x86_64 (`--build=x86_64-apple-darwin`). They run on this M4 Pro via Rosetta 2. Apple: Rosetta stays through **macOS 27**; starting **macOS 28** it is gone except for a narrow old-game carve-out. There is **no** Gcenx/WineHQ Apple silicon Wine tarball to “update” to. Native arm64 Wine on Darwin is still research. Apex / Rivals are Intel Windows EXEs anyway — even a native Wine host would still need CPU emulation for those games. Do not treat this banner as a blocker for v1 on macOS 26.
 
 ## Decisions
 
 | ID | Topic | State |
 | --- | --- | --- |
+| ADR-011 | v1 on this Mac; optimization layer is ours | accepted |
 | ADR-010 | First titles = Apex + Rivals (AC expected to block online) | accepted |
 | ADR-009 | Operator UI shows the stack | accepted |
 | ADR-008 | Library = local Steam, Mogged UI | accepted |
@@ -52,16 +73,16 @@ Not done:
 
 | Role | Title | State |
 | --- | --- | --- |
-| First | Apex Legends (`1172470`) | pinned; not launched |
-| Second | Marvel Rivals (`2767030`) | pinned; not launched |
+| First | Apex Legends (`1172470`) | pinned; not on disk |
+| Second | Marvel Rivals (`2767030`) | pinned; not on disk |
 | Later | Spider-Man Remastered (`1817070`) | profile exists; **not in the library until M2 / Steam has it** |
 
 ## Benchmarks
 
-None. Do not claim performance.
+None. Do not claim performance. Native 4K + ray tracing + uncapped FPS will cook this laptop — the optimization layer exists so we do not do that.
 
 ## Next
 
-1. Install Steam on this Mac (or Locate the Apex / Rivals Windows folders).
-2. `npm run bootstrap` — Homebrew Wine + MoltenVK.
-3. Play Apex. Watch the operator log. Record what died (almost certainly EAC).
+1. Put Apex (or any Windows game folder with `r5apex.exe`) on this Mac — Steam or Locate.
+2. Play. Watch operator `opt` (`DXVK_FRAME_RATE`, thermal) and the title log.
+3. Record boot vs anti-cheat death. Then vkd3d-proton for Rivals.

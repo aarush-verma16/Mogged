@@ -44,8 +44,8 @@ LGPL compliance for Wine and vkd3d-proton: dynamic link (`.dylib`), keep notices
 
 **Exit criteria:**
 
-- [ ] Wine binary (from Homebrew or Whisky's open-source build) runs a Windows `.exe` on this Mac.
-- [ ] DXVK + MoltenVK path tested with a DX11 title (Aperture Desk Job or similar free Steam Windows game).
+- [x] Wine binary (Gcenx `macOS_Wine_builds` 11.16) runs a Windows `.exe` on this Mac (`cmd.exe`).
+- [ ] DXVK-macOS + MoltenVK path tested with a DX11 title (Apex Legends).
 - [ ] vkd3d-proton + MoltenVK path tested with a DX12 title if possible at this stage.
 - [ ] Notes in `docs/STATUS.md`: which Wine version, which DXVK version, what launched, what broke.
 - [ ] No paid software used at any point.
@@ -53,14 +53,11 @@ LGPL compliance for Wine and vkd3d-proton: dynamic link (`.dylib`), keep notices
 **How to test (dev machine only):**
 
 ```bash
-# Install via Homebrew — free, open source
-brew install --cask whisky          # Whisky is open-source (MIT); uses Wine under the hood
-# OR install Wine directly:
-brew install wine-crossover         # CodeWeavers' open patches, not the paid app
-# Then point at a Windows Steam game EXE and run it
+npm run bootstrap   # Gcenx Wine Staging + MoltenVK + DXVK-macOS onto this Mac
+# Homebrew wine casks are Gatekeeper-disabled. Do not brew install whisky / wine-crossover.
 ```
 
-Whisky is the open-source macOS Wine frontend (MIT license). It is a reference, not the product. We use it to verify the free stack works before wiring it into Mogged.
+Then locate a Windows game folder in Mogged and Play. The operator console shows wine path, prefix, PID, and the optimization layer (FPS cap / FSR / RT).
 
 **Not this milestone:** FPS targets, Spider-Man, Mogged UI polish, anything paid.
 
@@ -176,4 +173,5 @@ Spawn is wired:
 | `runtime/Sources/MoggedRuntime/BackendLauncher.swift` | done |
 | `runtime/Sources/MoggedRuntime/ProcessHandle.swift` | done |
 | `runtime/Sources/MoggedRuntime/RuntimeSupervisor.swift` | launch + stop live |
+| `runtime/Sources/MoggedRuntime/OptimizationLayer.swift` | thermal → FPS cap, FSR, RT off |
 | `~/Library/Application Support/Mogged/backend.json` | written on first launch |

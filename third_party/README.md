@@ -11,4 +11,4 @@ third_party/vkd3d-proton/x64/*.dll
 third_party/moltenvk/libMoltenVK.dylib
 ```
 
-Until those exist, the runtime uses Homebrew Wine and MoltenVK on this Mac. See `scripts/bootstrap-runtime.sh`.
+Until those exist, `npm run bootstrap` installs Gcenx Wine under `~/Library/Application Support/Mogged/engine/`, Homebrew MoltenVK, and DXVK-macOS DLLs here (gitignored).

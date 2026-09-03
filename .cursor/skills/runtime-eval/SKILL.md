@@ -11,7 +11,7 @@ Part of **M0** in `/docs/MILESTONES.md`. Free stack only. Do not commit installe
 npm run bootstrap
 ```
 
-That installs Homebrew Wine + MoltenVK. Never CrossOver. Never GPTK.
+That installs Gcenx Wine Staging + MoltenVK + DXVK-macOS. Never CrossOver. Never GPTK. Homebrew wine casks are Gatekeeper-disabled.
 
 ## Output
 

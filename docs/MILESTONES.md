@@ -22,13 +22,13 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 - [x] Repo, docs, rules, and title profiles exist.
 - [x] Native Mac app identity is the product (not a compatibility GUI). Locked in ADRs.
 - [x] Apple Silicon Mac recorded in STATUS (`sw_vers`, chip).
-- [ ] Wine (free, LGPL) runs a Windows `.exe` on this Mac — via Homebrew or Whisky's open-source build.
+- [x] Wine (free, LGPL) runs a Windows `.exe` on this Mac — Gcenx Staging 11.16 ran `cmd.exe` (`mogged-ok`). Homebrew wine casks are Gatekeeper-disabled.
 - [ ] DXVK + MoltenVK path tested: Apex Legends or Marvel Rivals reaches pixels (anti-cheat may stop this).
 - [ ] Notes in STATUS: Wine version, DXVK version, what ran, what broke.
 - [ ] No paid software used at any point. No CrossOver. No GPTK.
 - [ ] Smoke title confirmed or swapped using [GAMES.md](GAMES.md).
 
-**Work:** Homebrew install Wine + DXVK. Run the smoke title manually. Record what worked. Start wiring `runtime/` as soon as the free stack boots anything.
+**Work:** `npm run bootstrap` (Gcenx Wine + MoltenVK + DXVK-macOS). Run Apex or Rivals. Record what worked. Optimization layer (FPS cap / FSR / RT off) is already in `runtime/`.
 
 **Not this milestone:** FPS targets, Spider-Man, UI polish, shipping to anyone.
 

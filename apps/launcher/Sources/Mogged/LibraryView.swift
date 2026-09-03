@@ -161,6 +161,13 @@ struct LibraryView: View {
                         KV("support", model.runtime.supportRoot)
                         KV("steamroot", model.runtime.steamRoot ?? "—")
 
+                        section("opt")
+                        KV("thermal", model.session?.optimization?.thermal ?? "—")
+                        KV("fpscap", model.session?.optimization.map { "\($0.fpsCap)" } ?? "—")
+                        KV("upscaler", model.session?.optimization?.upscaler ?? "—")
+                        KV("rt", model.session?.optimization?.rayTracing ?? "—")
+                        KV("why", model.session?.optimization?.reason ?? "—")
+
                         section("env")
                         ForEach(envRows, id: \.0) { key, value in
                             KV(key, value)
@@ -183,7 +190,7 @@ struct LibraryView: View {
 
     private var envRows: [(String, String)] {
         let env = model.session?.env ?? [:]
-        let keys = ["WINEPREFIX", "WINEDLLOVERRIDES", "WINEDEBUG", "VK_ICD_FILENAMES", "DXVK_STATE_CACHE_PATH", "SteamDeck"]
+        let keys = ["WINEPREFIX", "WINEDLLOVERRIDES", "DXVK_FRAME_RATE", "DXVK_HUD", "VK_ICD_FILENAMES", "MOGGED_THERMAL", "SteamDeck"]
         return keys.compactMap { key in
             guard let value = env[key], !value.isEmpty else { return nil }
             return (key, value)

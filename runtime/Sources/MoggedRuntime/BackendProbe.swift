@@ -61,8 +61,20 @@ public struct BackendProbe: Sendable {
             }
         }
 
-        return which("wine64", pathDirs: pathDirs + extras)
+        if let wine = which("wine64", pathDirs: pathDirs + extras)
             ?? which("wine", pathDirs: pathDirs + extras)
+        {
+            return wine
+        }
+
+        let appBins = [
+            "/Applications/Wine Staging.app/Contents/Resources/wine/bin",
+            "/Applications/Wine Stable.app/Contents/Resources/wine/bin",
+            "/Applications/Wine Devel.app/Contents/Resources/wine/bin",
+            AppSupport.root.appendingPathComponent("engine/wine/bin").path,
+            AppSupport.root.appendingPathComponent("engine/Wine Staging.app/Contents/Resources/wine/bin").path,
+        ]
+        return which("wine64", pathDirs: appBins) ?? which("wine", pathDirs: appBins)
     }
 
     private func which(_ name: String, pathDirs: [String]) -> String? {

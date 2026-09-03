@@ -42,13 +42,28 @@ struct LaunchPathTests {
             exe: exe,
             prefix: prefix,
             cache: cache,
-            config: BackendConfig(wine: "/opt/homebrew/bin/wine64")
+            config: BackendConfig(wine: "/opt/homebrew/bin/wine64"),
+            thermal: .nominal
         )
         #expect(plan.executable.path == "/opt/homebrew/bin/wine64")
         #expect(plan.arguments.first == exe.path)
         #expect(plan.environment["WINEPREFIX"] == prefix.path)
         #expect(plan.environment["DXVK_STATE_CACHE_PATH"] == cache.path)
+        #expect(plan.environment["DXVK_FRAME_RATE"] == "60")
+        #expect(plan.environment["WINEDLLOVERRIDES"] == "d3d11,d3d10core=n,b")
         #expect(plan.workingDirectory.lastPathComponent == "tmp")
+    }
+
+    @Test
+    func optimizationCapsWhenHot() throws {
+        let profile = try smokeProfile()
+        let hot = OptimizationLayer().policy(for: profile, thermal: .serious)
+        #expect(hot.fpsCap == 40)
+        #expect(hot.rayTracing == "off")
+        var env: [String: String] = [:]
+        OptimizationLayer().apply(hot, into: &env)
+        #expect(env["DXVK_FRAME_RATE"] == "40")
+        #expect(env["MOGGED_THERMAL"] == "serious")
     }
 
     @Test

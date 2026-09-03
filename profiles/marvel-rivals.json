@@ -21,7 +21,9 @@
   },
   "controllerRequired": false,
   "settings": {
-    "notes": "Second Play target. NetEase anti-cheat (ACE) will likely block online. DX12 path for the stack."
+    "upscaler": "fsr-quality",
+    "rayTracing": "off",
+    "notes": "DX12 via vkd3d. FSR Quality, RT off, FPS cap from the optimization layer."
   },
   "benchmark": {
     "route": "Boot to title if anti-cheat allows",

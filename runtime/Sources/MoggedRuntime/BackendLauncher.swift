@@ -37,7 +37,8 @@ public struct BackendLauncher: Sendable {
         exe: URL,
         prefix: URL,
         cache: URL,
-        config: BackendConfig
+        config: BackendConfig,
+        thermal: ProcessInfo.ThermalState = ProcessInfo.processInfo.thermalState
     ) -> LaunchPlan {
         let stack = graphicsStack(for: profile)
         var env: [String: String] = [
@@ -46,8 +47,10 @@ public struct BackendLauncher: Sendable {
             "DXVK_STATE_CACHE": "1",
             "DXVK_STATE_CACHE_PATH": cache.path,
             "DXVK_LOG_PATH": paths.logs.path,
-            "DXVK_HUD": "0",
         ]
+
+        let policy = OptimizationLayer().policy(for: profile, thermal: thermal)
+        OptimizationLayer().apply(policy, into: &env)
 
         if let overrides = dllOverrides(for: stack) {
             env["WINEDLLOVERRIDES"] = overrides
@@ -121,7 +124,8 @@ public struct BackendLauncher: Sendable {
     private func dllOverrides(for stack: String) -> String? {
         switch stack {
         case "dxvk-moltenvk":
-            return "d3d8,d3d9,d3d10,d3d11,dxgi=n,b"
+            // DXVK-macOS ships d3d11/d3d10core only. Do not native-override dxgi/d3d9.
+            return "d3d11,d3d10core=n,b"
         case "vkd3d-moltenvk":
             return "d3d12,d3d12core,dxgi=n,b"
         default:

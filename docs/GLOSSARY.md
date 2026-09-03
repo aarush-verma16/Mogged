@@ -8,7 +8,8 @@ User-facing language is Play, Installing, Running. The table below is for engine
 | **Launcher** | `apps/launcher` — Swift UI, the only user-facing process. |
 | **Runtime** | Hidden `runtime/` process: env, spawn, caches, logs. |
 | **Profile** | JSON in `profiles/`: how Mogged launches one title. |
-| **Smoke title** | Free Steam Windows game used to prove Play. |
+| **Optimization layer** | Our policy: thermal → FPS cap, FSR, RT off. Look expensive, keep this Mac cool. |
+| **Smoke title** | First Play target. Currently Apex Legends (anti-cheat expected to block online). |
 | **Primary demo** | Spider-Man Remastered — the quality proof. |
 | **Backend** | Swappable execution engine the runtime calls. Not shown in the UI. |
 | **D3DMetal** | DirectX → Metal. Not used — we cannot redistribute GPTK. D3D12 uses vkd3d-proton. |

@@ -20,8 +20,10 @@
     }
   },
   "controllerRequired": false,
-  "settings": {
-    "notes": "First Play target. EAC will likely block a real match. We still launch to see how far the stack gets."
+    "settings": {
+    "upscaler": "fsr-quality",
+    "rayTracing": "off",
+    "notes": "Smooth + FSR Quality. RT off. FPS capped by the optimization layer so this Mac does not cook."
   },
   "benchmark": {
     "route": "Boot to title / lobby if anti-cheat allows",

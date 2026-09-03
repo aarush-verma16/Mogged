@@ -63,6 +63,7 @@ public struct SessionInspect: Sendable, Equatable {
     public let stack: String
     public let env: [String: String]
     public let prefixReady: Bool
+    public let optimization: OptimizationPolicy?
 
     public init(
         titleId: String,
@@ -76,7 +77,8 @@ public struct SessionInspect: Sendable, Equatable {
         install: String?,
         stack: String,
         env: [String: String],
-        prefixReady: Bool
+        prefixReady: Bool,
+        optimization: OptimizationPolicy? = nil
     ) {
         self.titleId = titleId
         self.pid = pid
@@ -90,5 +92,6 @@ public struct SessionInspect: Sendable, Equatable {
         self.stack = stack
         self.env = env
         self.prefixReady = prefixReady
+        self.optimization = optimization
     }
 }

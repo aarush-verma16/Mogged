@@ -223,6 +223,7 @@ public actor RuntimeSupervisor {
         }
         let handle = running[profile.id]
         let log = plan?.logURL ?? RuntimePaths.standard().logs.appendingPathComponent("\(profile.id).log")
+        let policy = OptimizationLayer().policy(for: profile)
         return SessionInspect(
             titleId: profile.id,
             pid: handle?.isRunning == true ? handle?.pid : nil,
@@ -235,7 +236,8 @@ public actor RuntimeSupervisor {
             install: install?.path.path,
             stack: launcher.graphicsStack(for: profile),
             env: plan?.environment ?? [:],
-            prefixReady: !environment.needsInit(prefix: trees.prefix)
+            prefixReady: !environment.needsInit(prefix: trees.prefix),
+            optimization: policy
         )
     }
 

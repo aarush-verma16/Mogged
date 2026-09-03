@@ -13,6 +13,6 @@ npm run build
 | --- | --- |
 | `scripts/run-mogged.sh` | Build, bundle, open Mogged.app |
 | `scripts/test.sh` | Runtime tests + launcher compile |
-| `scripts/bootstrap-runtime.sh` | Homebrew Wine + MoltenVK (free). `npm run bootstrap` |
+| `scripts/bootstrap-runtime.sh` | Gcenx Wine + MoltenVK + DXVK-macOS (free). `npm run bootstrap` |
 
 Keep scripts idempotent. Do not copy eval toolkits into git.
