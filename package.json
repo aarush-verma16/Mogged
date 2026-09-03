@@ -1,0 +1,12 @@
+{
+  "name": "mogged",
+  "private": true,
+  "description": "Native macOS desktop app. npm scripts only wrap local build/run.",
+  "scripts": {
+    "start": "zsh scripts/run-mogged.sh",
+    "dev": "zsh scripts/run-mogged.sh",
+    "build": "swift build --package-path apps/launcher",
+    "test": "zsh scripts/test.sh",
+    "runtime": "swift run --package-path runtime mogged-runtime"
+  }
+}

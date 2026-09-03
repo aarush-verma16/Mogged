@@ -15,6 +15,9 @@ let package = Package(
             name: "Mogged",
             dependencies: [
                 .product(name: "MoggedRuntime", package: "runtime"),
+            ],
+            resources: [
+                .copy("Resources/Fonts"),
             ]
         ),
     ]

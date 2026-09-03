@@ -5,153 +5,191 @@ struct LibraryView: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        HStack(spacing: 0) {
-            sidebar
-            Divider()
-            detail
+        VStack(spacing: 0) {
+            topBar
+            Rectangle().fill(Theme.hairline).frame(height: 1)
+            HStack(spacing: 0) {
+                sidebar
+                Rectangle().fill(Theme.hairline).frame(width: 1)
+                detail
+            }
         }
-        .frame(minWidth: 780, minHeight: 520)
-        .background(Palette.bg)
+        .frame(minWidth: 960, minHeight: 640)
+        .background(Theme.canvas)
         .preferredColorScheme(.dark)
     }
 
-    private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("MOGGED")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .tracking(2)
-                .foregroundStyle(Palette.dim)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-
-            List(model.entries, selection: Bindable(model).selectedId) { entry in
-                GameRow(entry: entry, isRunning: model.runningIds.contains(entry.id))
-                    .tag(entry.id)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            }
-            .listStyle(.sidebar)
-            .scrollContentBackground(.hidden)
+    private var topBar: some View {
+        HStack(spacing: Theme.Space.x3) {
+            Text("Mogged")
+                .font(Theme.sans(14, weight: .semibold))
+                .foregroundStyle(Theme.ink)
+            Text("Library")
+                .font(Theme.sans(13, weight: .regular))
+                .foregroundStyle(Theme.muted)
+            Spacer()
         }
-        .frame(width: 280)
-        .background(Palette.sidebar)
+        .padding(.horizontal, Theme.Space.x4)
+        .frame(height: Theme.Space.topbar)
+        .background(Theme.canvas)
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.x2) {
+            Text("Games")
+                .font(Theme.sans(12, weight: .medium))
+                .foregroundStyle(Theme.muted)
+                .padding(.horizontal, Theme.Space.x2)
+                .padding(.top, Theme.Space.x4)
+
+            ScrollView {
+                LazyVStack(spacing: Theme.Space.x1) {
+                    ForEach(model.entries) { entry in
+                        sidebarRow(entry)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Theme.Space.x2)
+        .padding(.bottom, Theme.Space.x4)
+        .frame(width: Theme.Space.sidebar)
+        .background(Theme.canvas)
+    }
+
+    private func sidebarRow(_ entry: LibraryEntry) -> some View {
+        let selected = model.selectedId == entry.id || (model.selectedId == nil && model.selected?.id == entry.id)
+        let running = model.runningIds.contains(entry.id)
+        return Button {
+            model.selectedId = entry.id
+        } label: {
+            HStack(spacing: Theme.Space.x2) {
+                Circle()
+                    .fill(rowDot(entry, running: running))
+                    .frame(width: 8, height: 8)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.profile.displayName)
+                        .font(Theme.sans(13, weight: .medium))
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                    Text(rowMeta(entry, running: running))
+                        .font(Theme.sans(12, weight: .regular))
+                        .foregroundStyle(Theme.muted)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Theme.Space.x2)
+            .padding(.vertical, Theme.Space.x2)
+            .background(
+                selected ? Theme.raised : Color.clear,
+                in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
+            )
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
+                        .strokeBorder(Theme.hairline, lineWidth: 1)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var detail: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 0) {
             if let entry = model.selected {
-                Text(entry.profile.displayName)
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: Theme.Space.x3) {
+                    Text(entry.profile.displayName)
+                        .font(Theme.sans(32, weight: .semibold))
+                        .tracking(-0.64)
+                        .foregroundStyle(Theme.ink)
 
-                Text(statusLine(entry))
-                    .font(.system(size: 15))
-                    .foregroundStyle(Palette.dim)
+                    StatusBadge(text: statusLine(entry), tone: statusTone(entry))
 
-                if entry.profile.controllerRequired == true {
-                    Text("This game needs a controller.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.dim)
+                    if entry.profile.controllerRequired == true {
+                        Text("This game needs a controller.")
+                            .font(Theme.sans(14, weight: .regular))
+                            .foregroundStyle(Theme.body)
+                    }
                 }
+                .padding(Theme.Space.x8)
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 if let banner = model.banner {
                     Text(banner)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Palette.warn)
-                        .padding(12)
+                        .font(Theme.sans(13, weight: .regular))
+                        .foregroundStyle(Theme.warning)
+                        .padding(Theme.Space.x3)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Palette.warn.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
-                }
-
-                HStack(spacing: 12) {
-                    if model.runningIds.contains(entry.id) {
-                        Button("Stop") { Task { await model.stop(entry) } }
-                            .buttonStyle(SecondaryButtonStyle())
-                    } else if entry.isInstalled {
-                        Button(model.isBusy ? "Starting…" : "Play") {
-                            Task { await model.play(entry) }
+                        .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
+                                .strokeBorder(Theme.hairline, lineWidth: 1)
                         }
-                        .buttonStyle(PlayButtonStyle())
-                        .disabled(model.isBusy)
-                    } else {
-                        Button("Locate") { Task { await model.locate(entry) } }
-                            .buttonStyle(PlayButtonStyle())
-                    }
-
-                    if entry.isInstalled {
-                        Button("Locate") { Task { await model.locate(entry) } }
-                            .buttonStyle(SecondaryButtonStyle())
-                    }
+                        .padding(.horizontal, Theme.Space.x8)
+                        .padding(.bottom, Theme.Space.x4)
                 }
-            } else if model.loadFailed {
-                Text(model.banner ?? "Mogged couldn't load its game list.")
-                    .foregroundStyle(Palette.warn)
-                Spacer()
+
+                HStack(spacing: Theme.Space.x2) {
+                    Spacer()
+                    actionButtons(entry)
+                }
+                .padding(.horizontal, Theme.Space.x8)
+                .padding(.vertical, Theme.Space.x4)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Theme.hairline).frame(height: 1)
+                }
             } else {
-                Text("No games in the library yet.")
-                    .foregroundStyle(Palette.dim)
+                Text(model.loadFailed ? (model.banner ?? "Mogged couldn't load its game list.") : "No games in the library yet.")
+                    .font(Theme.sans(14, weight: .regular))
+                    .foregroundStyle(Theme.body)
+                    .padding(Theme.Space.x8)
                 Spacer()
             }
         }
-        .padding(36)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Theme.canvas)
+    }
+
+    @ViewBuilder
+    private func actionButtons(_ entry: LibraryEntry) -> some View {
+        if model.runningIds.contains(entry.id) {
+            Button("Stop") { Task { await model.stop(entry) } }
+                .buttonStyle(VercelButtonStyle(kind: .secondary))
+        } else if entry.isInstalled {
+            Button("Locate") { Task { await model.locate(entry) } }
+                .buttonStyle(VercelButtonStyle(kind: .secondary))
+            Button(model.isBusy ? "Starting…" : "Play") {
+                Task { await model.play(entry) }
+            }
+            .buttonStyle(VercelButtonStyle(kind: .primary, disabled: model.isBusy))
+            .disabled(model.isBusy)
+        } else {
+            Button("Locate") { Task { await model.locate(entry) } }
+                .buttonStyle(VercelButtonStyle(kind: .primary))
+        }
     }
 
     private func statusLine(_ entry: LibraryEntry) -> String {
         if model.runningIds.contains(entry.id) { return "Running" }
-        if entry.isInstalled { return "Ready to play" }
+        if entry.isInstalled { return "Ready" }
         return "Not installed"
     }
-}
 
-private struct GameRow: View {
-    let entry: LibraryEntry
-    let isRunning: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(entry.profile.displayName)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-            Text(isRunning ? "Running" : entry.isInstalled ? "Ready" : "Not installed")
-                .font(.system(size: 12))
-                .foregroundStyle(entry.isInstalled ? Palette.ok : Palette.dim)
-        }
-        .padding(.vertical, 6)
+    private func statusTone(_ entry: LibraryEntry) -> StatusBadge.Tone {
+        if model.runningIds.contains(entry.id) { return .running }
+        if entry.isInstalled { return .ready }
+        return .idle
     }
-}
 
-private enum Palette {
-    static let bg = Color(red: 0.07, green: 0.07, blue: 0.08)
-    static let sidebar = Color(red: 0.09, green: 0.09, blue: 0.10)
-    static let dim = Color(red: 0.62, green: 0.62, blue: 0.65)
-    static let accent = Color(red: 0.91, green: 0.27, blue: 0.27)
-    static let ok = Color(red: 0.45, green: 0.78, blue: 0.52)
-    static let warn = Color(red: 0.95, green: 0.72, blue: 0.38)
-}
-
-private struct PlayButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 16, weight: .semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 28)
-            .padding(.vertical, 12)
-            .background(Palette.accent.opacity(configuration.isPressed ? 0.8 : 1), in: Capsule())
+    private func rowMeta(_ entry: LibraryEntry, running: Bool) -> String {
+        if running { return "Running" }
+        return entry.isInstalled ? "Ready" : "Not installed"
     }
-}
 
-private struct SecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 15, weight: .medium))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(Color.white.opacity(configuration.isPressed ? 0.08 : 0.12), in: Capsule())
+    private func rowDot(_ entry: LibraryEntry, running: Bool) -> Color {
+        if running { return Theme.blue }
+        return entry.isInstalled ? Theme.success : Theme.accents3
     }
 }

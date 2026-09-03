@@ -15,8 +15,9 @@ DerivedData/
 .build/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 
-# Node (if tooling appears)
+# Node
 node_modules/
+package-lock.json
 
 # Python
 .venv/

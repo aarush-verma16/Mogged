@@ -1,0 +1,18 @@
+---
+description: Vercel/Geist visual system for Mogged UI
+globs: apps/launcher/**/*.swift
+alwaysApply: false
+---
+
+# Design
+
+Use tokens in `Theme.swift` only. Do not invent colors, radii, or type.
+
+- Fonts: Geist (`Geist-Regular` / `Medium` / `SemiBold`) and Geist Mono. Never SF Rounded, Inter, or `.rounded`.
+- Display: Geist SemiBold, tracking about -0.02em, never weight 700.
+- Color: black canvas `#000`, surface `#0a0a0a`, raised `#111`, hairline `#333`, ink `#ededed`, body `#a1a1a1`, muted `#888`. Blue `#0070F3` is links/focus/running only.
+- Status color is an 8px dot, not colored headlines.
+- Radius: 6px controls, 12px max on cards. No capsule buttons. Pills are badges only.
+- Spacing: 4px grid (4 / 8 / 12 / 16 / 24 / 32 / 40).
+- Primary button: height 40, white fill, black label, 6px radius, 12px horizontal padding.
+- Hairlines are `rgba(255,255,255,0.08)` or `#333`. Do not thicken them.

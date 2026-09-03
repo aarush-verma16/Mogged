@@ -28,11 +28,11 @@ Also: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [docs/BR
 
 ```bash
 git checkout dev
-./scripts/test.sh
-./scripts/run-mogged.sh
+npm test
+npm start
 ```
 
-Work on `dev`. Freeze to `main` only when a milestone is snapshot-ready.
+`npm run dev` is the same as `npm start`. Work on `dev`. Freeze to `main` only when a milestone is snapshot-ready.
 
 ## Non-goals (MVP)
 

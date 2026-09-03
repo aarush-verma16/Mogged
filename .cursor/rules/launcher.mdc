@@ -14,4 +14,4 @@ This **is** the product: a native macOS desktop app (Swift + SwiftUI).
 - Copy: never Wine, GPTK, CrossOver, Proton, prefix, bottle.
 - Title logic: load `profiles/*.json`. New flags go in the schema first.
 
-Keep UI functional. No store, accounts, or animated brand shell.
+UI uses `Theme.swift` (Vercel/Geist). No store, accounts, or animated brand shell.

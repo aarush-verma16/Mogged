@@ -3,10 +3,10 @@
 Native macOS desktop app. This is the product.
 
 ```bash
-./scripts/run-mogged.sh
+npm start
 ```
 
-Or open `apps/launcher/Package.swift` in Xcode and run the `Mogged` target.
+UI follows Vercel/Geist tokens in `Theme.swift` (Geist, `#000` canvas, 6px controls). Do not restyle ad hoc.
 
 ## Now
 
