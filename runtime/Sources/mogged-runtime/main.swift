@@ -1,0 +1,73 @@
+import Foundation
+import MoggedRuntime
+
+@main
+enum MoggedRuntimeCLI {
+    static func main() async {
+        do {
+            try await run(Array(CommandLine.arguments.dropFirst()))
+        } catch let error as MoggedError {
+            fputs("error: \(error.logDescription)\n", stderr)
+            exit(1)
+        } catch {
+            fputs("error: \(error.localizedDescription)\n", stderr)
+            exit(1)
+        }
+    }
+
+    private static func run(_ args: [String]) async throws {
+        guard let command = args.first else {
+            printUsage()
+            return
+        }
+
+        let supervisor = RuntimeSupervisor()
+        let profiles = try ProfileLoader.load()
+
+        switch command {
+        case "list":
+            let entries = await supervisor.libraryEntries(profiles: profiles)
+            for entry in entries {
+                let flag = entry.isInstalled ? "installed" : "missing"
+                print("\(entry.profile.id)\t\(entry.profile.displayName)\t\(flag)")
+            }
+        case "detect":
+            let probe = BackendProbe()
+            let backends = probe.detect()
+            if backends.isEmpty {
+                print("none")
+            } else {
+                for backend in backends {
+                    print("\(backend.kind.rawValue)\t\(backend.path)")
+                }
+            }
+        case "status":
+            let running = await supervisor.runningTitleIds()
+            print(running.isEmpty ? "idle" : running.joined(separator: ","))
+        case "launch":
+            guard args.count >= 2 else {
+                fputs("usage: mogged-runtime launch <title-id>\n", stderr)
+                exit(2)
+            }
+            guard let profile = profiles.first(where: { $0.id == args[1] }) else {
+                throw MoggedError.gameNotFound(args[1])
+            }
+            _ = try await supervisor.launch(profile: profile)
+        case "help", "-h", "--help":
+            printUsage()
+        default:
+            fputs("unknown command: \(command)\n", stderr)
+            printUsage()
+            exit(2)
+        }
+    }
+
+    private static func printUsage() {
+        print(
+            """
+            mogged-runtime — hidden helper, not a user-facing app
+            commands: list | detect | status | launch <title-id>
+            """
+        )
+    }
+}

@@ -1,0 +1,13 @@
+---
+description: Git branch workflow for main vs dev. Always on.
+alwaysApply: true
+---
+
+# Branches
+
+- **`dev`** — default working branch. All feature work, commits, and PRs land here.
+- **`main`** — last frozen snapshot. Do not commit to `main` unless the user asks to freeze a milestone.
+
+If HEAD is `main`, switch to `dev` before editing (create `dev` from `main` if it is missing). Feature branches fork from `dev` and merge back to `dev`. Promote with `dev` → `main` only as a freeze, not as daily work.
+
+See `docs/BRANCHING.md`.

@@ -22,7 +22,17 @@ tools/benchmark/   FPS / frametime / latency harness
 docs/              product + architecture + legal
 ```
 
-Also: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [AGENTS.md](AGENTS.md).
+Also: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [docs/BRANCHING.md](docs/BRANCHING.md), [AGENTS.md](AGENTS.md).
+
+## Run (dev)
+
+```bash
+git checkout dev
+./scripts/test.sh
+./scripts/run-mogged.sh
+```
+
+Work on `dev`. Freeze to `main` only when a milestone is snapshot-ready.
 
 ## Non-goals (MVP)
 

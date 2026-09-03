@@ -7,6 +7,7 @@ Read in this order: [VISION](VISION.md) → [MILESTONES](MILESTONES.md) → [GAM
 | [VISION.md](VISION.md) | Product thesis — native Mac desktop app |
 | [MILESTONES.md](MILESTONES.md) | **The plan.** Exit criteria, no dates |
 | [STATUS.md](STATUS.md) | What is true today |
+| [BRANCHING.md](BRANCHING.md) | `dev` vs `main` |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Desktop app + hidden runtime |
 | [LEGAL.md](LEGAL.md) | What we may ship vs eval-only toolkits |
 | [GAMES.md](GAMES.md) | Title criteria and ladder |

@@ -6,6 +6,12 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-007 — `dev` vs `main`
+
+- **Status:** accepted
+- **Decision:** Daily work and PRs land on `dev`. `main` is a freeze of `dev` when we explicitly snapshot a milestone. See [BRANCHING.md](BRANCHING.md).
+- **Why:** Two long-lived branches; keep `main` boring.
+
 ## ADR-006 — Native desktop app, not a compatibility product
 
 - **Status:** accepted

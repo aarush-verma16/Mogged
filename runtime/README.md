@@ -1,16 +1,22 @@
 # Runtime
 
-Hidden process behind Mogged.app. Not user-facing.
+Hidden library + CLI behind Mogged.app. Not user-facing.
 
-**Status:** not started. **M1.** Decision 1 (which backend we spawn) is still open.
+```
+swift test --package-path runtime
+swift run --package-path runtime mogged-runtime list
+swift run --package-path runtime mogged-runtime detect
+```
 
-## Intended shape
+`detect` may print toolkit names. That command is for us, not for the app UI.
 
-- Apply profile env/args and spawn the Windows exe.
-- Persist shader/PSO caches.
-- Stream logs for `tools/benchmark`.
-- Backend names: `d3dmetal` | `dxvk-moltenvk` | `moltenvk` | `vkd3d-moltenvk`.
+## Layout
 
-Point at a local eval install via config. Do not put GPTK or CrossOver.app in this tree.
+| Piece | Role |
+| --- | --- |
+| `MoggedRuntime` | Profiles, install detection, library overrides, telemetry, launch supervisor |
+| `mogged-runtime` | CLI over the same library |
 
-See `.cursor/rules/runtime.mdc`, `docs/ARCHITECTURE.md`, `docs/LEGAL.md`.
+Launch will refuse until an execution backend is installed on this Mac **and** spawn is wired. The app shows a generic "can't start this game" message — never a toolkit name.
+
+Config and logs: `~/Library/Application Support/Mogged/` and `~/Library/Logs/Mogged/`.

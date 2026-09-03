@@ -7,7 +7,7 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 | ID | Milestone | Status |
 | --- | --- | --- |
 | **M0** | Machine can run a Windows game; Mogged is defined as a desktop app | **current** |
-| **M1** | Mogged.app: click Play, smoke title runs | not started |
+| **M1** | Mogged.app: click Play, smoke title runs | **started** (app + runtime; launch not live) |
 | **M2** | Spider-Man Remastered reaches gameplay through Mogged | not started |
 | **M3** | Spider-Man hits the quality bar | not started |
 | **M4** | A second, different-engine title uses the same pipeline | not started |
@@ -20,8 +20,8 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 **Exit (all of these):**
 
 - [x] Repo, docs, rules, and title profiles exist.
-- [ ] Native Mac app identity is the product (not a compatibility GUI). Locked in ADRs.
-- [ ] Apple Silicon Mac recorded in STATUS (`sw_vers`, chip).
+- [x] Native Mac app identity is the product (not a compatibility GUI). Locked in ADRs.
+- [x] Apple Silicon Mac recorded in STATUS (`sw_vers`, chip).
 - [ ] A Windows game or Windows Steam client boots on this Mac through at least one eval backend (GPTK and/or CrossOver — local testing only).
 - [ ] The same **smoke title** is attempted on GPTK and CrossOver; notes in STATUS.
 - [ ] GPTK license text from Apple's download is read; 3–5 sentences in ADR-002.
@@ -39,7 +39,7 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 
 **Exit (all of these):**
 
-- [ ] `apps/launcher` is a native macOS desktop app (Swift). Play / Stop. No compatibility-manager screens.
+- [x] `apps/launcher` is a native macOS desktop app (Swift). Play / Stop. No compatibility-manager screens.
 - [ ] Hidden `runtime/` creates whatever it needs and launches the smoke title. The user never touches a config file.
 - [ ] A non-technical person can open Mogged, click Play, and get into the smoke title.
 - [ ] Crash/FPS logging exists even if it is developer-only ([TELEMETRY.md](TELEMETRY.md)).

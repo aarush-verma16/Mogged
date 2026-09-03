@@ -15,6 +15,7 @@ Mogged is the product. It is not a Wine app, not a GPTK wrapper with a coat of p
 | Why this exists | [docs/VISION.md](docs/VISION.md) |
 | **What to do next** | [docs/MILESTONES.md](docs/MILESTONES.md) |
 | Where we are | [docs/STATUS.md](docs/STATUS.md) |
+| Git branches | [docs/BRANCHING.md](docs/BRANCHING.md) |
 | Stack | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | What we may ship | [docs/LEGAL.md](docs/LEGAL.md) |
 | Titles | [docs/GAMES.md](docs/GAMES.md) |
@@ -43,6 +44,7 @@ Knobs live in `profiles/*.json`, never hardcoded in the launcher.
 5. **Measure.** Performance claims need `tools/benchmark` output ([docs/TELEMETRY.md](docs/TELEMETRY.md)).
 6. **Current milestone only.** Finish exit criteria in `docs/MILESTONES.md` before optional work on the next one.
 7. **MVP scope.** No cloud, store, anti-cheat, third title, or brand system.
+8. **`dev` is HEAD.** Commit and PR to `dev`. Do not commit to `main` unless asked to freeze. [docs/BRANCHING.md](docs/BRANCHING.md).
 
 ## Where to put new code
 

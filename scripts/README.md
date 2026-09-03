@@ -1,7 +1,8 @@
 # Scripts
 
-Machine-local setup helpers (eval-toolkit install notes, environment wipe, log scoop).
+| Script | What |
+| --- | --- |
+| `./scripts/run-mogged.sh` | Launch Mogged.app (dev) |
+| `./scripts/test.sh` | Runtime tests + launcher build |
 
-Keep scripts **idempotent** and **non-secret**. They may print paths but must not copy GPTK/CrossOver into git.
-
-Nothing here yet — add after M0 has been run once on a real Mac and the commands match current Apple/CodeWeavers docs.
+Keep scripts idempotent. Do not copy eval toolkits into git.
