@@ -28,8 +28,20 @@ enum MoggedRuntimeCLI {
         case "list":
             let entries = await supervisor.libraryEntries(profiles: profiles)
             for entry in entries {
-                let flag = entry.isInstalled ? "installed" : "missing"
+                let flag = entry.canPlay ? "ready" : (entry.isInstalled ? "installed" : "missing")
                 print("\(entry.profile.id)\t\(entry.profile.displayName)\t\(flag)")
+            }
+        case "steam":
+            let snap = await supervisor.steamSnapshot()
+            print("present\t\(snap.present)")
+            print("running\t\(snap.running)")
+            if let root = snap.root { print("root\t\(root.path)") }
+            if let account = snap.account {
+                print("account\t\(account.personaName ?? account.steamId)")
+            }
+            for app in snap.apps {
+                let flag = app.isInstalled ? "installed" : "missing"
+                print("\(app.appId)\t\(app.name)\t\(flag)")
             }
         case "detect":
             let probe = BackendProbe()
@@ -49,7 +61,11 @@ enum MoggedRuntimeCLI {
                 fputs("usage: mogged-runtime launch <title-id>\n", stderr)
                 exit(2)
             }
-            guard let profile = profiles.first(where: { $0.id == args[1] }) else {
+            var profile = profiles.first(where: { $0.id == args[1] })
+            if profile == nil {
+                profile = await supervisor.libraryEntries(profiles: profiles).first(where: { $0.id == args[1] })?.profile
+            }
+            guard let profile else {
                 throw MoggedError.gameNotFound(args[1])
             }
             let state = try await supervisor.launch(profile: profile)
@@ -74,7 +90,7 @@ enum MoggedRuntimeCLI {
         print(
             """
             mogged-runtime — hidden helper, not a user-facing app
-            commands: list | detect | status | launch <title-id> | stop <title-id>
+            commands: list | steam | detect | status | launch <title-id> | stop <title-id>
             """
         )
     }

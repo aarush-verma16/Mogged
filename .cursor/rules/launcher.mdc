@@ -9,9 +9,9 @@ alwaysApply: false
 This **is** the product: a native macOS desktop app (Swift + SwiftUI).
 
 - Verbs: Play, Stop. No toolkit screens, Windows-version pickers, or engine-config panels.
-- Detection: Steam libraries + profile exe hints + a folder picker.
+- Detection: local Steam library on this Mac + profile overlays + a folder picker. Mogged UI, not Steam's UI.
 - Talk to `runtime/` over local CLI or XPC. No cloud API.
-- Copy: never Wine, GPTK, CrossOver, Proton, prefix, bottle.
-- Title logic: load `profiles/*.json`. New flags go in the schema first.
+- Copy: never Wine, GPTK, CrossOver, Proton, prefix, bottle. Steam as a product name is OK.
+- Title logic: Steam catalog is the library. `profiles/*.json` overlays known titles. Smoke is first. Spider-Man is not listed until it is in the local Steam library.
 
 UI uses `Theme.swift` (Vercel/Geist). No store, accounts, or animated brand shell.

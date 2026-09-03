@@ -4,7 +4,10 @@ public struct LibraryEntry: Sendable, Equatable, Identifiable {
     public var id: String { profile.id }
     public let profile: TitleProfile
     public let install: LocatedInstall?
+    public let coverURL: URL?
+    public let lastPlayed: Int?
     public var isInstalled: Bool { install != nil }
+    public var canPlay: Bool { install?.executable != nil && !profile.macNative }
 }
 
 public struct LaunchState: Sendable, Equatable {
@@ -21,18 +24,21 @@ public actor RuntimeSupervisor {
     private let configStore: BackendConfigStore
     private let environment: WineEnvironment
     private let launcher: BackendLauncher
+    private let catalog: SteamCatalog
     private var running: [String: ProcessHandle] = [:]
 
     public init(
-        locator: InstallLocator = InstallLocator(),
+        locator: InstallLocator? = nil,
         library: LibraryStore = LibraryStore(),
         probe: BackendProbe = BackendProbe(),
         telemetry: TelemetryLog = TelemetryLog(),
         configStore: BackendConfigStore = BackendConfigStore(),
         environment: WineEnvironment = WineEnvironment(),
-        launcher: BackendLauncher = BackendLauncher()
+        launcher: BackendLauncher = BackendLauncher(),
+        catalog: SteamCatalog = SteamCatalog()
     ) {
-        self.locator = locator
+        self.catalog = catalog
+        self.locator = locator ?? InstallLocator(catalog: catalog)
         self.library = library
         self.probe = probe
         self.telemetry = telemetry
@@ -41,15 +47,28 @@ public actor RuntimeSupervisor {
         self.launcher = launcher
     }
 
+    public func steamSnapshot() -> SteamSnapshot {
+        catalog.snapshot()
+    }
+
     public func libraryEntries(profiles: [TitleProfile]) -> [LibraryEntry] {
-        profiles.map { profile in
-            let override = library.overridePath(for: profile.id)
-            let install = locator.locate(profile: profile, overridePath: override)
-            return LibraryEntry(profile: profile, install: install)
+        let snapshot = catalog.snapshot()
+        let profilesByAppId = Dictionary(uniqueKeysWithValues: profiles.map { ($0.steamAppId, $0) })
+        var entries: [LibraryEntry] = []
+        var seen = Set<Int>()
+
+        for app in snapshot.apps {
+            if app.isTool || app.macNativeOnly { continue }
+            seen.insert(app.appId)
+            let profile = profilesByAppId[app.appId] ?? TitleProfile.fromSteam(app)
+            entries.append(makeEntry(profile: profile, steam: app))
         }
-        .sorted { lhs, rhs in
-            roleRank(lhs.profile.role) < roleRank(rhs.profile.role)
+
+        if let smoke = profiles.first(where: { $0.role == .smoke }), !seen.contains(smoke.steamAppId) {
+            entries.append(makeEntry(profile: smoke, steam: nil))
         }
+
+        return entries.sorted(by: Self.sortLibrary)
     }
 
     public func rememberInstall(titleId: String, folder: URL) throws {
@@ -160,19 +179,43 @@ public actor RuntimeSupervisor {
         telemetry.record(TelemetryEvent(event: "launch.exited", titleId: titleId, detail: "code=\(code)"))
     }
 
+    private func makeEntry(profile: TitleProfile, steam: SteamLibraryApp?) -> LibraryEntry {
+        let override = library.overridePath(for: profile.id)
+            ?? library.overridePath(for: "steam-\(profile.steamAppId)")
+        let fromLocator = locator.locate(profile: profile, overridePath: override)
+        let install: LocatedInstall?
+        if let fromLocator {
+            install = fromLocator
+        } else if let path = steam?.installPath {
+            let exe = locator.findExecutable(in: path, names: profile.executables)
+                ?? locator.windowsExecutables(in: path).first
+            install = LocatedInstall(path: path, executable: exe)
+        } else {
+            install = nil
+        }
+        return LibraryEntry(
+            profile: profile,
+            install: install,
+            coverURL: steam?.coverURL,
+            lastPlayed: steam?.lastPlayed
+        )
+    }
+
+    private static func sortLibrary(_ lhs: LibraryEntry, _ rhs: LibraryEntry) -> Bool {
+        if lhs.profile.role == .smoke && rhs.profile.role != .smoke { return true }
+        if rhs.profile.role == .smoke && lhs.profile.role != .smoke { return false }
+        if lhs.isInstalled != rhs.isInstalled { return lhs.isInstalled && !rhs.isInstalled }
+        let lp = lhs.lastPlayed ?? 0
+        let rp = rhs.lastPlayed ?? 0
+        if lp != rp { return lp > rp }
+        return lhs.profile.displayName.localizedCaseInsensitiveCompare(rhs.profile.displayName) == .orderedAscending
+    }
+
     private func fail(_ titleId: String, _ error: MoggedError) {
         telemetry.record(TelemetryEvent(event: "launch.failed", titleId: titleId, detail: error.logDescription))
     }
 
     private func fail(_ titleId: String, _ detail: String) {
         telemetry.record(TelemetryEvent(event: "launch.failed", titleId: titleId, detail: detail))
-    }
-
-    private func roleRank(_ role: TitleProfile.Role) -> Int {
-        switch role {
-        case .smoke: return 0
-        case .primaryDemo: return 1
-        case .generalize: return 2
-        }
     }
 }

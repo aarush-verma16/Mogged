@@ -6,6 +6,12 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-008 — Library is local Steam, Mogged UI
+
+- **Status:** accepted
+- **Decision:** The in-app library is games read from the Steam client on this Mac (library folders, manifests, login). Mogged draws its own UI. We do not embed or clone Steam's UI. First Play target is the free smoke title. Spider-Man Remastered stays a later milestone and is not listed unless it is actually in that local Steam library.
+- **Why:** The product is a Mac game app that uses the games you already own. Hardcoding two JSON titles is not a library.
+
 ## ADR-007 — `dev` vs `main`
 
 - **Status:** accepted

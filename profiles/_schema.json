@@ -19,7 +19,7 @@
     "id": { "type": "string", "description": "kebab-case filename without .json" },
     "steamAppId": { "type": "integer" },
     "displayName": { "type": "string" },
-    "role": { "enum": ["smoke", "primary-demo", "generalize"] },
+    "role": { "enum": ["smoke", "primary-demo", "generalize", "catalog"] },
     "engine": { "type": "string" },
     "graphicsApi": {
       "enum": ["d3d9", "d3d11", "d3d12", "vulkan", "opengl", "mixed"]

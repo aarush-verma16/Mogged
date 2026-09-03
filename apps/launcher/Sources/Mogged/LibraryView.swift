@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import MoggedRuntime
 
@@ -28,23 +29,51 @@ struct LibraryView: View {
                 .font(Theme.sans(13, weight: .regular))
                 .foregroundStyle(Theme.muted)
             Spacer()
+            HStack(spacing: Theme.Space.x2) {
+                Circle()
+                    .fill(steamDot)
+                    .frame(width: 8, height: 8)
+                Text(model.steamStatus)
+                    .font(Theme.sans(12, weight: .regular))
+                    .foregroundStyle(Theme.muted)
+            }
         }
         .padding(.horizontal, Theme.Space.x4)
         .frame(height: Theme.Space.topbar)
         .background(Theme.canvas)
     }
 
+    private var steamDot: Color {
+        if model.steam.running { return Theme.success }
+        if model.steam.present { return Theme.accents5 }
+        return Theme.accents3
+    }
+
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.x2) {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: Theme.Space.x2) {
             Text("Games")
                 .font(Theme.sans(12, weight: .medium))
                 .foregroundStyle(Theme.muted)
                 .padding(.horizontal, Theme.Space.x2)
                 .padding(.top, Theme.Space.x4)
 
+            TextField("Search", text: $model.query)
+                .textFieldStyle(.plain)
+                .font(Theme.sans(13, weight: .regular))
+                .foregroundStyle(Theme.ink)
+                .padding(.horizontal, Theme.Space.x2)
+                .frame(height: 32)
+                .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
+                        .strokeBorder(Theme.hairline, lineWidth: 1)
+                }
+                .padding(.horizontal, Theme.Space.x2)
+
             ScrollView {
                 LazyVStack(spacing: Theme.Space.x1) {
-                    ForEach(model.entries) { entry in
+                    ForEach(model.visible) { entry in
                         sidebarRow(entry)
                     }
                 }
@@ -53,7 +82,7 @@ struct LibraryView: View {
         }
         .padding(.horizontal, Theme.Space.x2)
         .padding(.bottom, Theme.Space.x4)
-        .frame(width: Theme.Space.sidebar)
+        .frame(width: 268)
         .background(Theme.canvas)
     }
 
@@ -64,9 +93,9 @@ struct LibraryView: View {
             model.selectedId = entry.id
         } label: {
             HStack(spacing: Theme.Space.x2) {
-                Circle()
-                    .fill(rowDot(entry, running: running))
-                    .frame(width: 8, height: 8)
+                CoverThumb(url: entry.coverURL, title: entry.profile.displayName)
+                    .frame(width: 36, height: 36)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.profile.displayName)
                         .font(Theme.sans(13, weight: .medium))
@@ -98,6 +127,16 @@ struct LibraryView: View {
     private var detail: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let entry = model.selected {
+                if let cover = entry.coverURL {
+                    CoverThumb(url: cover, title: entry.profile.displayName)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 200)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.xl, style: .continuous))
+                        .padding(.horizontal, Theme.Space.x8)
+                        .padding(.top, Theme.Space.x8)
+                }
+
                 VStack(alignment: .leading, spacing: Theme.Space.x3) {
                     Text(entry.profile.displayName)
                         .font(Theme.sans(32, weight: .semibold))
@@ -106,8 +145,20 @@ struct LibraryView: View {
 
                     StatusBadge(text: statusLine(entry), tone: statusTone(entry))
 
+                    if entry.profile.role == .smoke {
+                        Text("Free Windows game. First Play target.")
+                            .font(Theme.sans(14, weight: .regular))
+                            .foregroundStyle(Theme.body)
+                    }
+
                     if entry.profile.controllerRequired == true {
                         Text("This game needs a controller.")
+                            .font(Theme.sans(14, weight: .regular))
+                            .foregroundStyle(Theme.body)
+                    }
+
+                    if !model.steam.present {
+                        Text("Open Steam on this Mac to fill the library from games on this computer.")
                             .font(Theme.sans(14, weight: .regular))
                             .foregroundStyle(Theme.body)
                     }
@@ -141,7 +192,7 @@ struct LibraryView: View {
                     Rectangle().fill(Theme.hairline).frame(height: 1)
                 }
             } else {
-                Text(model.loadFailed ? (model.banner ?? "Mogged couldn't load its game list.") : "No games in the library yet.")
+                Text(model.loadFailed ? (model.banner ?? "Mogged couldn't load its game list.") : emptyCopy)
                     .font(Theme.sans(14, weight: .regular))
                     .foregroundStyle(Theme.body)
                     .padding(Theme.Space.x8)
@@ -152,12 +203,18 @@ struct LibraryView: View {
         .background(Theme.canvas)
     }
 
+    private var emptyCopy: String {
+        if !model.query.isEmpty { return "No games match that search." }
+        if model.steam.present { return "No Windows games found in Steam yet." }
+        return "No games in the library yet."
+    }
+
     @ViewBuilder
     private func actionButtons(_ entry: LibraryEntry) -> some View {
         if model.runningIds.contains(entry.id) {
             Button("Stop") { Task { await model.stop(entry) } }
                 .buttonStyle(VercelButtonStyle(kind: .secondary))
-        } else if entry.isInstalled {
+        } else if entry.canPlay {
             Button("Locate") { Task { await model.locate(entry) } }
                 .buttonStyle(VercelButtonStyle(kind: .secondary))
             Button(model.isBusy ? "Starting…" : "Play") {
@@ -173,23 +230,44 @@ struct LibraryView: View {
 
     private func statusLine(_ entry: LibraryEntry) -> String {
         if model.runningIds.contains(entry.id) { return "Running" }
-        if entry.isInstalled { return "Ready" }
+        if entry.canPlay { return "Ready" }
+        if entry.isInstalled { return "Not installed" }
         return "Not installed"
     }
 
     private func statusTone(_ entry: LibraryEntry) -> StatusBadge.Tone {
         if model.runningIds.contains(entry.id) { return .running }
-        if entry.isInstalled { return .ready }
+        if entry.canPlay { return .ready }
         return .idle
     }
 
     private func rowMeta(_ entry: LibraryEntry, running: Bool) -> String {
         if running { return "Running" }
-        return entry.isInstalled ? "Ready" : "Not installed"
+        if entry.canPlay { return "Ready" }
+        return "Not installed"
+    }
+}
+
+private struct CoverThumb: View {
+    let url: URL?
+    let title: String
+
+    var body: some View {
+        ZStack {
+            Theme.raised
+            if let url, let image = NSImage(contentsOf: url) {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Text(letter)
+                    .font(Theme.sans(14, weight: .medium))
+                    .foregroundStyle(Theme.muted)
+            }
+        }
     }
 
-    private func rowDot(_ entry: LibraryEntry, running: Bool) -> Color {
-        if running { return Theme.blue }
-        return entry.isInstalled ? Theme.success : Theme.accents3
+    private var letter: String {
+        String(title.prefix(1)).uppercased()
     }
 }

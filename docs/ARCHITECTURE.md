@@ -25,7 +25,7 @@ Per-title JSON in `profiles/` is the contract. Game-specific flags belong there,
 ## Desktop app
 
 - Swift + SwiftUI, Apple Silicon.
-- Play / Stop. Library of titles we detected.
+- Play / Stop. Library comes from the Steam client on this Mac. Mogged UI, not Steam chrome.
 - Looks like a game launcher, not like developer tooling.
 - Talks to `runtime/` over a local API (CLI is fine; XPC later). No cloud.
 

@@ -13,7 +13,7 @@ Done:
 - Repo, docs, rules, profiles.
 - Desktop-app identity (ADR-006).
 - `dev` / `main` workflow.
-- Native SwiftUI app loads the library from profiles. Locate + Play call the hidden runtime.
+- Native SwiftUI app library is the local Steam catalog (Mogged UI). Smoke title is pinned first. Spider-Man is not shown unless Steam has it.
 - Runtime tests cover profile decode, user-facing copy, install lookup, and launch/stop through a fake Wine.
 - `RuntimeSupervisor.launch` creates a per-title environment, execs Wine, tracks PID, writes JSONL, Stop kills the process.
 - Decision 1 accepted: free Wine + DXVK + vkd3d-proton + MoltenVK. No paid software.
@@ -34,6 +34,7 @@ Not done:
 
 | ID | Topic | State |
 | --- | --- | --- |
+| ADR-008 | Library = local Steam, Mogged UI, smoke first | accepted |
 | ADR-007 | `dev` vs `main` | accepted |
 | ADR-006 | Native desktop app, not a compatibility GUI | accepted |
 | ADR-005 | Not Elden Ring | accepted |
@@ -49,8 +50,8 @@ Not done:
 
 | Role | Title | State |
 | --- | --- | --- |
-| Smoke | Aperture Desk Job (`1902490`) | in library UI; not launched |
-| Primary | Spider-Man Remastered (`1817070`) | in library UI; not launched |
+| Smoke | Aperture Desk Job (`1902490`) | first Play target; shown even before Steam is installed |
+| Primary | Spider-Man Remastered (`1817070`) | profile exists; **not in the library until M2 / Steam has it** |
 | #2 | TBD | not picked |
 
 ## Benchmarks
@@ -59,6 +60,7 @@ None. Do not claim performance.
 
 ## Next
 
-1. `npm run bootstrap` — Homebrew Wine + MoltenVK on this Mac (free).
-2. Install the smoke title (Windows Steam build).
-3. Click Play from Mogged.app. Record the first boot in this file.
+1. Install Steam on this Mac and sign in (local files only; Mogged reads them).
+2. Keep the smoke title as the first Play target (free Windows game).
+3. `npm run bootstrap` — Homebrew Wine + MoltenVK.
+4. Click Play on the smoke title. Record the first boot in this file.

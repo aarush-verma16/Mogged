@@ -22,6 +22,7 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
         case smoke
         case primaryDemo = "primary-demo"
         case generalize
+        case catalog
     }
 
     public enum GraphicsAPI: String, Codable, Sendable {
@@ -52,5 +53,27 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
     public struct Benchmark: Codable, Sendable, Equatable {
         public let route: String?
         public let durationSeconds: Int?
+    }
+
+    /// Profile overlay for a game discovered from the local Steam library.
+    public static func fromSteam(_ app: SteamLibraryApp) -> TitleProfile {
+        TitleProfile(
+            id: "steam-\(app.appId)",
+            steamAppId: app.appId,
+            displayName: app.name,
+            role: .catalog,
+            engine: "unknown",
+            graphicsApi: app.hasWindowsExe ? .d3d11 : .mixed,
+            antiCheat: .none,
+            macNative: app.macNativeOnly,
+            backend: Backend(preferred: "dxvk-moltenvk", fallback: "moltenvk"),
+            executables: app.executableNames.isEmpty ? ["game.exe"] : app.executableNames,
+            launch: nil,
+            settings: nil,
+            benchmark: nil,
+            controllerRequired: nil,
+            knownIssues: nil,
+            research: nil
+        )
     }
 }

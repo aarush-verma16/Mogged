@@ -12,24 +12,43 @@ final class AppModel {
     var banner: String?
     var isBusy = false
     var loadFailed = false
+    var query = ""
+    var steam: SteamSnapshot = .empty
 
     private let supervisor = RuntimeSupervisor()
     private var watchTask: Task<Void, Never>?
+    private var pollTask: Task<Void, Never>?
 
     var selected: LibraryEntry? {
-        entries.first { $0.id == selectedId } ?? entries.first
+        visible.first { $0.id == selectedId } ?? entries.first { $0.id == selectedId } ?? visible.first
+    }
+
+    var visible: [LibraryEntry] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return entries }
+        return entries.filter {
+            $0.profile.displayName.localizedCaseInsensitiveContains(trimmed)
+        }
+    }
+
+    var steamStatus: String {
+        if steam.running { return steam.account?.personaName.map { "Steam · \($0)" } ?? "Steam connected" }
+        if steam.present { return "Steam on this Mac" }
+        return "No Steam on this Mac"
     }
 
     func bootstrap() async {
         await refresh()
         if selectedId == nil {
-            selectedId = entries.first?.id
+            selectedId = entries.first(where: { $0.profile.role == .smoke })?.id ?? entries.first?.id
         }
+        startPolling()
     }
 
     func refresh() async {
         do {
             let profiles = try ProfileLoader.load()
+            steam = await supervisor.steamSnapshot()
             entries = await supervisor.libraryEntries(profiles: profiles)
             loadFailed = false
             runningIds = Set(await supervisor.runningTitleIds())
@@ -78,6 +97,16 @@ final class AppModel {
             selectedId = entry.id
         } catch {
             banner = "Couldn't save that folder."
+        }
+    }
+
+    private func startPolling() {
+        pollTask?.cancel()
+        pollTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(8))
+                await refresh()
+            }
         }
     }
 

@@ -42,6 +42,7 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 
 - [x] `apps/launcher` is a native macOS desktop app (Swift). Play / Stop. No compatibility-manager screens.
 - [x] Hidden `runtime/` creates a per-title environment and can exec the game through Wine. The user never touches a config file (`backend.json` is auto-written).
+- [x] Library reads the local Steam install on this Mac and shows those games in Mogged's UI (not Steam's UI). Smoke title is first. Spider-Man is not the first library row.
 - [ ] A non-technical person can open Mogged, click Play, and get into the smoke title (blocked on Wine install + game files).
 - [x] Crash/session logging exists even if it is developer-only ([TELEMETRY.md](TELEMETRY.md)).
 
@@ -59,7 +60,7 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 - [ ] Reaches main menu, then actual gameplay, with no manual config.
 - [ ] Profile in `profiles/spider-man-remastered.json` is what the runtime uses (no hardcoded title branch required to boot).
 
-**Work:** D3D12 path (D3DMetal preferred), SteamDeck=0, RT off, ignore DLSS. Get into the city. Ugly is fine.
+**Work:** D3D12 path (vkd3d-proton → MoltenVK), SteamDeck=0, RT off, ignore DLSS. Get into the city. Ugly is fine.
 
 **Not this milestone:** Near-native FPS, side-by-side video, second commercial title.
 
