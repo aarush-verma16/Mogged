@@ -1,0 +1,22 @@
+---
+description: Mogged product thesis and proof point. Always on.
+alwaysApply: true
+---
+
+# Mogged
+
+Windows PC games on Apple Silicon, launched from a Mac app. Open app → Play → game runs well. Users never see Windows, Wine, bottles, prefixes, GPTK, Proton, or VMs.
+
+## Proof ladder
+
+1. Free Steam smoke title launches from our shell (default: Aperture Desk Job).
+2. Marvel's Spider-Man Remastered is the quality demo — not Elden Ring.
+3. A second different-engine title later proves the pipeline, not a one-off.
+
+## Build vs wrap
+
+Do not write a Windows translation layer. Wrap Wine/CrossOver/D3DMetal. Our code is detection, `profiles/*.json`, shader/PSO cache, input, telemetry, and the Play UX.
+
+## Speed
+
+Phase numbers are order, not weeks. Take the shortest path to the next proof. Measure FPS; do not claim "feels native" without a benchmark file.

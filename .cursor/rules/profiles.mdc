@@ -1,0 +1,17 @@
+---
+description: Per-title profile JSON conventions
+globs: profiles/**/*.json
+alwaysApply: false
+---
+
+# Profiles
+
+Every playable title needs `profiles/<id>.json` matching `_schema.json`. The launcher must not hardcode AppIDs or exe names.
+
+Required: `id`, `steamAppId`, `role`, `graphicsApi`, `antiCheat`, `backend`, `executables`.
+
+- `role` is `smoke` | `primary-demo` | `generalize`.
+- `antiCheat` must be `none` for MVP titles. Kernel AC is a reject.
+- `backend.preferred` is `d3dmetal` for D3D11/12 titles. Vulkan-native smoke may use `moltenvk`.
+- Game-specific env and launch args live here, not in the runtime default env.
+- `knownIssues` is a list of strings we still owe a fix. Do not delete an issue because it is embarrassing.

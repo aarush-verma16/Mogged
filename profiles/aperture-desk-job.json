@@ -1,0 +1,35 @@
+{
+  "id": "aperture-desk-job",
+  "steamAppId": 1902490,
+  "displayName": "Aperture Desk Job",
+  "role": "smoke",
+  "engine": "Source 2",
+  "graphicsApi": "vulkan",
+  "antiCheat": "none",
+  "macNative": false,
+  "backend": {
+    "preferred": "moltenvk",
+    "fallback": "d3dmetal"
+  },
+  "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
+  "launch": {
+    "args": [],
+    "env": {}
+  },
+  "controllerRequired": true,
+  "settings": {
+    "notes": "Plumbing smoke only. Vulkan/Source 2 does not prove the D3D12 path used by Spider-Man Remastered."
+  },
+  "benchmark": {
+    "route": "Intro through first gameplay segment",
+    "durationSeconds": 60
+  },
+  "knownIssues": [
+    "Requires a game controller on Windows; verify our input path early.",
+    "Does not exercise D3DMetal/D3D12."
+  ],
+  "research": {
+    "steam": "https://store.steampowered.com/app/1902490/",
+    "why": "Free, small, no AC, no Mac native. First Play-button target."
+  }
+}

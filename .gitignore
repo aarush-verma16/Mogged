@@ -1,0 +1,73 @@
+# macOS / Xcode
+.DS_Store
+.AppleDouble
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# SwiftPM
+.build/
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+
+# Node (if tooling appears)
+node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+credentials.json
+
+# Translation-stack local installs (never commit)
+third_party/wine/
+third_party/dxvk/
+third_party/moltenvk/
+third_party/vkd3d*/
+Game Porting Toolkit*.dmg
+game-porting-toolkit*.dmg
+gptk/
+CrossOver.app
+**/*.bottle/
+prefixes/
+bottles/
+.wine/
+drive_c/
+*.pfx
+
+# Games and Steam
+steamapps/
+Steam.app
+games/
+libraryfolders.vdf
+
+# Shader / PSO caches
+*_shader_cache*/
+*_psocache*/
+*.dxvk-cache
+*.foz
+
+# Benchmark raw output
+tools/benchmark/results/
+!tools/benchmark/results/.gitkeep
+
+# Logs
+*.log
+crash-*.txt
+
+# Editors
+.idea/
+*.swp
+*~

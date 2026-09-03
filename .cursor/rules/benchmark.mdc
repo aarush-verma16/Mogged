@@ -1,0 +1,14 @@
+---
+description: Benchmark harness and result JSON conventions
+globs: tools/benchmark/**/*
+alwaysApply: false
+---
+
+# Benchmarks
+
+A performance claim needs a JSON run: title id, machine, backend, resolution, upscaler, firstRun, avg FPS, p1, hitchCount.
+
+- Same scene and duration as `benchmark.route` in the title profile.
+- Steam overlay off. Compare warm caches to warm caches.
+- Put raw runs in `tools/benchmark/results/` (gitignored). Commit only fixtures/samples.
+- Hitch = frame time ≥ 2× median. First-run compiles are allowed; second launch must meet `docs/TELEMETRY.md`.

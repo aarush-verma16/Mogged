@@ -1,0 +1,15 @@
+---
+description: Conventions for Mogged markdown docs in docs/
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Docs
+
+`docs/STATUS.md` is the snapshot; `docs/DECISIONS.md` is append-only ADRs. If a phase gate is hit or a backend is chosen, update both in the same change.
+
+Do not put calendar-week promises in docs. Phases are proof order.
+
+Title facts belong in `docs/GAMES.md` plus `profiles/`. Do not invent a second compatibility database.
+
+When you mention GPTK, say eval-only unless ADR-002 has been accepted as a ship strategy (it has not).

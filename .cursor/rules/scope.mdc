@@ -1,0 +1,20 @@
+---
+description: MVP non-goals and shipping constraints. Always on.
+alwaysApply: true
+---
+
+# Scope
+
+Do not build: cloud/remote rendering, a store, library sync, monetization, anti-cheat titles, online multiplayer, a 10-title matrix, a Wine GUI, or brand polish beyond functional.
+
+## License
+
+GPTK is eval-only on our Macs. Do not vendor Apple's toolkit, require users to install GPTK, or copy CrossOver internals. Shipping path is LGPL Wine or a CrossOver OEM license — see `docs/LEGAL.md`. Local GPTK/CrossOver installs for testing are expected.
+
+## Git hygiene
+
+Never commit game binaries, Steam libraries, Wine prefixes, GPTK/CrossOver apps, DMGs, shader caches, or secrets.
+
+## UI copy
+
+User-visible strings: Play, Installing, Updating, Running. Not "creating bottle" or "Wine 10.0".

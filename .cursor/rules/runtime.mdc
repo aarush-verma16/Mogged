@@ -1,0 +1,15 @@
+---
+description: Hidden translation-stack supervisor conventions
+globs: runtime/**/*
+alwaysApply: false
+---
+
+# Runtime
+
+This process is not a product. It creates prefixes, sets env, spawns the Windows exe, and collects logs.
+
+- Assume the backend binary (Wine / CrossOver / GPTK eval) is **injected by config**, not compiled in.
+- Never require the user to run winecfg or Winetricks.
+- Persist shader/PSO caches outside throwaway prefix dirs when possible.
+- Crash = wrap the translation-stack log in a Mogged report; do not show raw Wine traces in the UI.
+- Do not vendor GPTK. Do not copy CrossOver.app into this tree.

@@ -1,0 +1,8 @@
+Copyright (c) 2026 Mogged. All rights reserved.
+
+Mogged application code in this repository is proprietary. You may not use, copy,
+modify, or distribute it except as permitted in a separate written license.
+
+Third-party components (Wine, DXVK, MoltenVK, vkd3d-proton, Apple Game Porting
+Toolkit, CrossOver, Steam, and game titles) remain under their own licenses.
+See docs/LEGAL.md. Apple GPTK is not distributed as part of this project.

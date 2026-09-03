@@ -1,0 +1,43 @@
+{
+  "id": "spider-man-remastered",
+  "steamAppId": 1817070,
+  "displayName": "Marvel's Spider-Man Remastered",
+  "role": "primary-demo",
+  "engine": "Insomniac / Nixxes",
+  "graphicsApi": "d3d12",
+  "antiCheat": "none",
+  "macNative": false,
+  "backend": {
+    "preferred": "d3dmetal",
+    "fallback": "vkd3d-moltenvk"
+  },
+  "executables": ["Spider-Man.exe"],
+  "launch": {
+    "args": [],
+    "env": {
+      "SteamDeck": "0"
+    }
+  },
+  "settings": {
+    "upscaler": "fsr-quality-or-metalfx",
+    "rayTracing": "off",
+    "dlss": "ignore",
+    "notes": "Nixxes ships a PSO cache next to the game. Persist and pre-warm it. FSR stands in for DLSS."
+  },
+  "benchmark": {
+    "route": "NYC traversal plus one street combat encounter; exclude menus and loading",
+    "durationSeconds": 180
+  },
+  "controllerRequired": false,
+  "knownIssues": [
+    "CrossOver reports of silent crashes and cutscene crashes.",
+    "Ray tracing can false-fail on VRAM when SteamDeck=1.",
+    "DLSS will not translate; do not treat missing DLSS as a bug."
+  ],
+  "research": {
+    "steam": "https://store.steampowered.com/app/1817070/",
+    "protondb": "https://www.protondb.com/app/1817070/",
+    "crossoverForum": "https://www.codeweavers.com/compatibility/crossover/forum/marvel-s-spider-man-remastered",
+    "nixxesPsoCache": "https://www.digitalfoundry.net/articles/digitalfoundry-2022-inside-marvels-spider-man-remastered-on-pc-the-nixxes-tech-interview"
+  }
+}

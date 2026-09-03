@@ -1,0 +1,22 @@
+---
+description: Runtime layering and graphics backend rules. Always on.
+alwaysApply: true
+---
+
+# Stack
+
+```
+launcher (user-facing) → runtime supervisor (hidden) → Wine-class prefix + D3DMetal or DXVK/MoltenVK → Metal
+```
+
+Keep the runtime **swappable**. Call backends `d3dmetal` and `dxvk-moltenvk`. Do not hardcode GPTK paths in the launcher.
+
+## Graphics
+
+- Spider-Man Remastered is **D3D12**. DXVK will not translate it. Prefer D3DMetal. vkd3d-proton + MoltenVK is fallback only.
+- DLSS does not exist here. Use FSR in-game and/or MetalFX. Ray tracing off unless a benchmark says otherwise.
+- Title-specific env, DLL overrides, and upscaler choices belong in `profiles/*.json`, not `if title == spider-man` in Swift.
+
+## Process
+
+One hidden prefix per title (Steam-shared prefix allowed if necessary). Launcher passes profile id + install path. Runtime creates, launches, kills, and logs.

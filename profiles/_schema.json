@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mogged-title-profile",
+  "title": "Mogged title profile",
+  "type": "object",
+  "required": [
+    "id",
+    "steamAppId",
+    "displayName",
+    "role",
+    "engine",
+    "graphicsApi",
+    "antiCheat",
+    "macNative",
+    "backend",
+    "executables"
+  ],
+  "properties": {
+    "id": { "type": "string", "description": "kebab-case filename without .json" },
+    "steamAppId": { "type": "integer" },
+    "displayName": { "type": "string" },
+    "role": { "enum": ["smoke", "primary-demo", "generalize"] },
+    "engine": { "type": "string" },
+    "graphicsApi": {
+      "enum": ["d3d9", "d3d11", "d3d12", "vulkan", "opengl", "mixed"]
+    },
+    "antiCheat": { "enum": ["none", "vac", "eac", "battleye", "other"] },
+    "macNative": { "type": "boolean" },
+    "backend": {
+      "type": "object",
+      "required": ["preferred"],
+      "properties": {
+        "preferred": { "enum": ["d3dmetal", "dxvk-moltenvk", "moltenvk", "vkd3d-moltenvk"] },
+        "fallback": { "type": "string" }
+      }
+    },
+    "executables": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "launch": {
+      "type": "object",
+      "properties": {
+        "args": { "type": "array", "items": { "type": "string" } },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "upscaler": { "type": "string" },
+        "rayTracing": { "type": "string" },
+        "dlss": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "properties": {
+        "route": { "type": "string" },
+        "durationSeconds": { "type": "integer" }
+      }
+    },
+    "controllerRequired": { "type": "boolean" },
+    "knownIssues": { "type": "array", "items": { "type": "string" } },
+    "research": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}
