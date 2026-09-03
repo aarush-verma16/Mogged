@@ -19,5 +19,5 @@ Before coding, read:
 - Plan: milestones with exit criteria. No weeks.
 - Do not write a Windows/DX translator. Hidden runtime + profiles + telemetry.
 - Zero paid software. Wine + DXVK + vkd3d-proton + MoltenVK (`docs/BUILD.md`).
-- Smoke = free Steam game. Demo = Spider-Man Remastered. Not Elden Ring.
+- Smoke = Apex Legends, then Marvel Rivals. Demo later = Spider-Man Remastered. Not Elden Ring.
 - After a milestone or decision, update STATUS, MILESTONES, DECISIONS.

@@ -12,11 +12,11 @@ description: Creates or updates a Mogged per-title JSON profile. Use when adding
 3. Fill `steamAppId`, `executables`, `graphicsApi`, `antiCheat`, `backend.preferred`.
 4. Put env vars and args in the profile, not in launcher source.
 5. Link ProtonDB / CrossOver / GPTK notes under `research`.
-6. If the title is not smoke or Spider-Man, add an ADR and treat it as M4 (`/docs/MILESTONES.md`).
+6. If the title is not Apex / Rivals / Spider-Man, add an ADR.
 7. Mention the new profile in `/docs/STATUS.md` if it changes the ladder.
 
 ## Roles
 
-`smoke` | `primary-demo` | `generalize`
+`smoke` | `primary-demo` | `generalize` | `catalog`
 
-Spider-Man Remastered stays `primary-demo`. Do not add Elden Ring without explicitly moving it out of "not MVP."
+Apex Legends is `smoke`. Marvel Rivals is pinned `generalize`. Spider-Man Remastered stays `primary-demo`. Do not add Elden Ring without explicitly moving it out of "not MVP."

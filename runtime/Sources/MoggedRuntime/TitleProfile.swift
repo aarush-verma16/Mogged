@@ -17,6 +17,7 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
     public let controllerRequired: Bool?
     public let knownIssues: [String]?
     public let research: [String: String]?
+    public let pinned: Bool?
 
     public enum Role: String, Codable, Sendable {
         case smoke
@@ -55,6 +56,8 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
         public let durationSeconds: Int?
     }
 
+    public var isPinned: Bool { pinned == true || role == .smoke }
+
     /// Profile overlay for a game discovered from the local Steam library.
     public static func fromSteam(_ app: SteamLibraryApp) -> TitleProfile {
         TitleProfile(
@@ -73,7 +76,8 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
             benchmark: nil,
             controllerRequired: nil,
             knownIssues: nil,
-            research: nil
+            research: nil,
+            pinned: nil
         )
     }
 }

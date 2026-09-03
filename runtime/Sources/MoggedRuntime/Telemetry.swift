@@ -24,7 +24,7 @@ public struct TelemetryLog: Sendable {
     public func record(_ event: TelemetryEvent) {
         do {
             try paths.ensure()
-            let url = paths.logs.appendingPathComponent("runtime.jsonl")
+            let url = jsonlURL
             var line = try JSONEncoder().encode(event)
             line.append(contentsOf: [0x0A])
             if FileManager.default.fileExists(atPath: url.path) {
@@ -38,5 +38,21 @@ public struct TelemetryLog: Sendable {
         } catch {
             fputs("mogged telemetry write failed: \(error)\n", stderr)
         }
+    }
+
+    public var jsonlURL: URL {
+        paths.logs.appendingPathComponent("runtime.jsonl")
+    }
+
+    public func tailJSONL(maxBytes: Int = 48_000) -> String {
+        Self.tail(url: jsonlURL, maxBytes: maxBytes)
+    }
+
+    public static func tail(url: URL, maxBytes: Int = 48_000) -> String {
+        guard let data = try? Data(contentsOf: url), !data.isEmpty else { return "" }
+        if data.count <= maxBytes {
+            return String(data: data, encoding: .utf8) ?? ""
+        }
+        return String(data: data.suffix(maxBytes), encoding: .utf8) ?? ""
     }
 }

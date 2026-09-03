@@ -14,9 +14,12 @@ final class AppModel {
     var loadFailed = false
     var query = ""
     var steam: SteamSnapshot = .empty
+    var runtime = RuntimeInspect.empty
+    var session: SessionInspect?
+    var runtimeLog = ""
+    var gameLog = ""
 
     private let supervisor = RuntimeSupervisor()
-    private var watchTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
 
     var selected: LibraryEntry? {
@@ -28,13 +31,8 @@ final class AppModel {
         guard !trimmed.isEmpty else { return entries }
         return entries.filter {
             $0.profile.displayName.localizedCaseInsensitiveContains(trimmed)
+            || $0.profile.id.localizedCaseInsensitiveContains(trimmed)
         }
-    }
-
-    var steamStatus: String {
-        if steam.running { return steam.account?.personaName.map { "Steam · \($0)" } ?? "Steam connected" }
-        if steam.present { return "Steam on this Mac" }
-        return "No Steam on this Mac"
     }
 
     func bootstrap() async {
@@ -52,12 +50,18 @@ final class AppModel {
             entries = await supervisor.libraryEntries(profiles: profiles)
             loadFailed = false
             runningIds = Set(await supervisor.runningTitleIds())
+            runtime = await supervisor.inspectRuntime()
+            if let entry = selected {
+                session = await supervisor.inspectSession(profile: entry.profile, install: entry.install)
+                gameLog = await supervisor.gameLogTail(titleId: entry.id)
+            }
+            runtimeLog = await supervisor.telemetryTail()
         } catch let error as MoggedError {
             loadFailed = true
-            banner = error.userMessage
+            banner = error.logDescription
         } catch {
             loadFailed = true
-            banner = "Mogged couldn't load its game list."
+            banner = String(describing: error)
         }
     }
 
@@ -68,11 +72,11 @@ final class AppModel {
         do {
             _ = try await supervisor.launch(profile: entry.profile)
             await refresh()
-            watchRunning()
         } catch let error as MoggedError {
-            banner = error.userMessage
+            banner = error.logDescription
+            await refresh()
         } catch {
-            banner = "Couldn't start the game."
+            banner = String(describing: error)
         }
     }
 
@@ -82,9 +86,9 @@ final class AppModel {
             try await supervisor.stop(titleId: entry.id)
             await refresh()
         } catch let error as MoggedError {
-            banner = error.userMessage
+            banner = error.logDescription
         } catch {
-            banner = "Couldn't stop the game."
+            banner = String(describing: error)
         }
     }
 
@@ -96,7 +100,7 @@ final class AppModel {
             await refresh()
             selectedId = entry.id
         } catch {
-            banner = "Couldn't save that folder."
+            banner = String(describing: error)
         }
     }
 
@@ -104,20 +108,8 @@ final class AppModel {
         pollTask?.cancel()
         pollTask = Task {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(8))
-                await refresh()
-            }
-        }
-    }
-
-    private func watchRunning() {
-        watchTask?.cancel()
-        watchTask = Task { [supervisor] in
-            while !Task.isCancelled {
-                let ids = await supervisor.runningTitleIds()
-                runningIds = Set(ids)
-                if ids.isEmpty { break }
                 try? await Task.sleep(for: .seconds(1))
+                await refresh()
             }
         }
     }
@@ -129,7 +121,7 @@ final class AppModel {
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
         panel.prompt = "Choose"
-        panel.message = "Select the folder for \(title)"
+        panel.message = "Folder for \(title)"
         return panel.runModal() == .OK ? panel.url : nil
     }
 }

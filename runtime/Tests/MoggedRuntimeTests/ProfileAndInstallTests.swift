@@ -6,12 +6,14 @@ import Testing
 func repoProfilesDecode() throws {
     let profiles = try ProfileLoader.load()
     let ids = Set(profiles.map(\.id))
-    #expect(ids.contains("aperture-desk-job"))
+    #expect(ids.contains("apex-legends"))
+    #expect(ids.contains("marvel-rivals"))
     #expect(ids.contains("spider-man-remastered"))
 
     let smoke = try #require(profiles.first { $0.role == .smoke })
-    #expect(smoke.steamAppId == 1_902_490)
-    #expect(smoke.antiCheat == .none)
+    #expect(smoke.id == "apex-legends")
+    #expect(smoke.steamAppId == 1_172_470)
+    #expect(smoke.antiCheat == .eac)
 
     let demo = try #require(profiles.first { $0.role == .primaryDemo })
     #expect(demo.graphicsApi == .d3d12)
@@ -42,36 +44,36 @@ func userMessagesOmitToolkitNames() {
 @Test
 func locatesExeFromOverrideFolder() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("mogged-test-\(UUID().uuidString)")
-    let gameDir = root.appendingPathComponent("Aperture Desk Job")
+    let gameDir = root.appendingPathComponent("Apex")
     try FileManager.default.createDirectory(at: gameDir, withIntermediateDirectories: true)
-    let exe = gameDir.appendingPathComponent("Aperture Desk Job.exe")
+    let exe = gameDir.appendingPathComponent("r5apex.exe")
     try Data().write(to: exe)
     defer { try? FileManager.default.removeItem(at: root) }
 
-    let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+    let profile = try ProfileLoader.load().first { $0.id == "apex-legends" }!
     let located = InstallLocator().locate(profile: profile, overridePath: gameDir.path)
-    #expect(located?.executable?.lastPathComponent == "Aperture Desk Job.exe")
+    #expect(located?.executable?.lastPathComponent == "r5apex.exe")
 }
 
 @Test
 func locatesSteamInstallFromManifest() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("mogged-steam-\(UUID().uuidString)")
     let steamapps = root.appendingPathComponent("steamapps")
-    let common = steamapps.appendingPathComponent("common/DeskJob")
+    let common = steamapps.appendingPathComponent("common/Apex")
     try FileManager.default.createDirectory(at: common, withIntermediateDirectories: true)
-    try Data().write(to: common.appendingPathComponent("deskjob.exe"))
+    try Data().write(to: common.appendingPathComponent("r5apex.exe"))
     let acf = """
     "AppState"
     {
-    \t"appid"\t\t"1902490"
-    \t"installdir"\t\t"DeskJob"
+    \t"appid"\t\t"1172470"
+    \t"installdir"\t\t"Apex"
     }
     """
-    try acf.write(to: steamapps.appendingPathComponent("appmanifest_1902490.acf"), atomically: true, encoding: .utf8)
+    try acf.write(to: steamapps.appendingPathComponent("appmanifest_1172470.acf"), atomically: true, encoding: .utf8)
     defer { try? FileManager.default.removeItem(at: root) }
 
-    let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+    let profile = try ProfileLoader.load().first { $0.id == "apex-legends" }!
     let locator = InstallLocator()
     let install = locator.steamInstall(appId: profile.steamAppId, libraryRoot: steamapps)
-    #expect(install?.lastPathComponent == "DeskJob")
+    #expect(install?.lastPathComponent == "Apex")
 }

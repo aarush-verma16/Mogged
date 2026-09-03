@@ -12,7 +12,7 @@ This is not a compatibility manager, not a bottle GUI, and not a Wine/CrossOver 
 
 Current snapshot: [docs/STATUS.md](docs/STATUS.md).
 
-Proof titles: free Steam smoke game → *Marvel's Spider-Man Remastered* → a second engine later. Elden Ring is not MVP.
+Proof titles: Apex Legends → Marvel Rivals → *Marvel's Spider-Man Remastered* later. Elden Ring is not MVP.
 
 ## Repo
 

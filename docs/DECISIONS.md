@@ -6,10 +6,22 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-010 — First titles: Apex Legends and Marvel Rivals
+
+- **Status:** accepted
+- **Decision:** The first Play targets are **Apex Legends** (`1172470`) then **Marvel Rivals** (`2767030`). Aperture Desk Job is no longer the smoke title. Both are always listed (`pinned`). Spider-Man Remastered stays later.
+- **Why:** Founder wants these running on this Mac first. Both have kernel/online anti-cheat (EAC / ACE). They may not reach a match. Boot + stack traces are still the experiment. Recorded so we do not pretend GAMES.md anti-cheat rule was followed.
+
+## ADR-009 — Operator UI shows the stack
+
+- **Status:** accepted
+- **Decision:** This Mac's Mogged window is an **operator console**: Wine path, prefix, PID, env, DXVK/vkd3d, Steam disk state, `runtime.jsonl`, per-title logs. Not a consumer launcher. ADR-004 (no toolkit names in UI) does not apply to this surface until we ship to someone else.
+- **Why:** One user, need to see what the runtime is doing.
+
 ## ADR-008 — Library is local Steam, Mogged UI
 
 - **Status:** accepted
-- **Decision:** The in-app library is games read from the Steam client on this Mac (library folders, manifests, login). Mogged draws its own UI. We do not embed or clone Steam's UI. First Play target is the free smoke title. Spider-Man Remastered stays a later milestone and is not listed unless it is actually in that local Steam library.
+- **Decision:** The in-app library is games read from the Steam client on this Mac (library folders, manifests, login). Mogged draws its own UI. We do not embed or clone Steam's UI. First Play targets are Apex Legends and Marvel Rivals (ADR-010). Spider-Man Remastered stays a later milestone and is not listed unless it is actually in that local Steam library.
 - **Why:** The product is a Mac game app that uses the games you already own. Hardcoding two JSON titles is not a library.
 
 ## ADR-007 — `dev` vs `main`
@@ -41,7 +53,7 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 - **Status:** accepted (smoke title still confirmable)
 - **Decision:** Smoke = free Windows Steam game (default Aperture Desk Job). Primary = Spider-Man Remastered. Second title TBD in **M4**. No third title in MVP.
 - **Why:** Need a zero-cost plumbing test before buying/installing a 80GB+ DX12 game, then one demanding single-player proof.
-- **Open:** Confirm Aperture Desk Job after first Wine boot; swap using `GAMES.md` shortlist if it teaches nothing about our stack.
+- **Open:** Apex + Rivals are the operator first titles (ADR-010). Confirm after first boot.
 
 ## ADR-002 — Shipping runtime license
 

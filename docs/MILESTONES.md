@@ -23,7 +23,7 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 - [x] Native Mac app identity is the product (not a compatibility GUI). Locked in ADRs.
 - [x] Apple Silicon Mac recorded in STATUS (`sw_vers`, chip).
 - [ ] Wine (free, LGPL) runs a Windows `.exe` on this Mac — via Homebrew or Whisky's open-source build.
-- [ ] DXVK + MoltenVK path tested: smoke title (Aperture Desk Job or a free Steam Windows game) reaches pixels.
+- [ ] DXVK + MoltenVK path tested: Apex Legends or Marvel Rivals reaches pixels (anti-cheat may stop this).
 - [ ] Notes in STATUS: Wine version, DXVK version, what ran, what broke.
 - [ ] No paid software used at any point. No CrossOver. No GPTK.
 - [ ] Smoke title confirmed or swapped using [GAMES.md](GAMES.md).
@@ -42,8 +42,8 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 
 - [x] `apps/launcher` is a native macOS desktop app (Swift). Play / Stop. No compatibility-manager screens.
 - [x] Hidden `runtime/` creates a per-title environment and can exec the game through Wine. The user never touches a config file (`backend.json` is auto-written).
-- [x] Library reads the local Steam install on this Mac and shows those games in Mogged's UI (not Steam's UI). Smoke title is first. Spider-Man is not the first library row.
-- [ ] A non-technical person can open Mogged, click Play, and get into the smoke title (blocked on Wine install + game files).
+- [x] Library reads the local Steam install. Operator UI shows Wine/prefix/PID/logs. Apex then Rivals are pinned first.
+- [ ] Play Apex (or Rivals) far enough to see a window or a useful crash in the log.
 - [x] Crash/session logging exists even if it is developer-only ([TELEMETRY.md](TELEMETRY.md)).
 
 **Work:** Desktop app shell, install detection, profile apply, one-click launch. Hide the engine. Do not chase frame rate.

@@ -1,4 +1,3 @@
-import AppKit
 import SwiftUI
 import MoggedRuntime
 
@@ -8,205 +7,216 @@ struct LibraryView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            Rectangle().fill(Theme.hairline).frame(height: 1)
+            hairline
             HStack(spacing: 0) {
                 sidebar
-                Rectangle().fill(Theme.hairline).frame(width: 1)
-                detail
+                hairlineVertical
+                inspector
+                hairlineVertical
+                logs
             }
         }
-        .frame(minWidth: 960, minHeight: 640)
+        .frame(minWidth: 1100, minHeight: 640)
         .background(Theme.canvas)
         .preferredColorScheme(.dark)
     }
 
+    private var hairline: some View { Rectangle().fill(Theme.hairline).frame(height: 1) }
+    private var hairlineVertical: some View { Rectangle().fill(Theme.hairline).frame(width: 1) }
+
     private var topBar: some View {
         HStack(spacing: Theme.Space.x3) {
-            Text("Mogged")
-                .font(Theme.sans(14, weight: .semibold))
+            Text("mogged")
+                .font(Theme.mono(12, weight: .medium))
                 .foregroundStyle(Theme.ink)
-            Text("Library")
-                .font(Theme.sans(13, weight: .regular))
+            Text("operator")
+                .font(Theme.mono(12))
                 .foregroundStyle(Theme.muted)
             Spacer()
-            HStack(spacing: Theme.Space.x2) {
-                Circle()
-                    .fill(steamDot)
-                    .frame(width: 8, height: 8)
-                Text(model.steamStatus)
-                    .font(Theme.sans(12, weight: .regular))
-                    .foregroundStyle(Theme.muted)
+            MonoStat(label: "wine", value: model.runtime.wine ?? "missing", ok: model.runtime.wineReady)
+            MonoStat(label: "steam", value: steamValue, ok: model.runtime.steamRunning)
+            MonoStat(label: "apps", value: "\(model.runtime.steamAppCount)", ok: model.runtime.steamPresent)
+            if let pid = model.session?.pid {
+                MonoStat(label: "pid", value: "\(pid)", ok: true)
             }
         }
-        .padding(.horizontal, Theme.Space.x4)
-        .frame(height: Theme.Space.topbar)
-        .background(Theme.canvas)
+        .padding(.horizontal, Theme.Space.x3)
+        .frame(height: 36)
     }
 
-    private var steamDot: Color {
-        if model.steam.running { return Theme.success }
-        if model.steam.present { return Theme.accents5 }
-        return Theme.accents3
+    private var steamValue: String {
+        if model.runtime.steamRunning { return model.runtime.steamAccount ?? "running" }
+        if model.runtime.steamPresent { return "disk" }
+        return "off"
     }
 
     private var sidebar: some View {
         @Bindable var model = model
         return VStack(alignment: .leading, spacing: Theme.Space.x2) {
-            Text("Games")
-                .font(Theme.sans(12, weight: .medium))
-                .foregroundStyle(Theme.muted)
-                .padding(.horizontal, Theme.Space.x2)
-                .padding(.top, Theme.Space.x4)
-
-            TextField("Search", text: $model.query)
+            TextField("filter", text: $model.query)
                 .textFieldStyle(.plain)
-                .font(Theme.sans(13, weight: .regular))
+                .font(Theme.mono(11))
                 .foregroundStyle(Theme.ink)
                 .padding(.horizontal, Theme.Space.x2)
-                .frame(height: 32)
-                .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
+                .frame(height: 28)
+                .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
+                    RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous)
                         .strokeBorder(Theme.hairline, lineWidth: 1)
                 }
-                .padding(.horizontal, Theme.Space.x2)
 
             ScrollView {
-                LazyVStack(spacing: Theme.Space.x1) {
+                LazyVStack(spacing: 0) {
                     ForEach(model.visible) { entry in
                         sidebarRow(entry)
                     }
                 }
             }
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, Theme.Space.x2)
-        .padding(.bottom, Theme.Space.x4)
-        .frame(width: 268)
+        .padding(Theme.Space.x2)
+        .frame(width: 220)
         .background(Theme.canvas)
     }
 
     private func sidebarRow(_ entry: LibraryEntry) -> some View {
-        let selected = model.selectedId == entry.id || (model.selectedId == nil && model.selected?.id == entry.id)
+        let selected = model.selectedId == entry.id || model.selected?.id == entry.id
         let running = model.runningIds.contains(entry.id)
         return Button {
             model.selectedId = entry.id
         } label: {
             HStack(spacing: Theme.Space.x2) {
-                CoverThumb(url: entry.coverURL, title: entry.profile.displayName)
-                    .frame(width: 36, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
-                VStack(alignment: .leading, spacing: 2) {
+                Circle()
+                    .fill(running ? Theme.blue : (entry.canPlay ? Theme.success : Theme.accents3))
+                    .frame(width: 6, height: 6)
+                VStack(alignment: .leading, spacing: 1) {
                     Text(entry.profile.displayName)
-                        .font(Theme.sans(13, weight: .medium))
+                        .font(Theme.sans(12, weight: .medium))
                         .foregroundStyle(Theme.ink)
                         .lineLimit(1)
                     Text(rowMeta(entry, running: running))
-                        .font(Theme.sans(12, weight: .regular))
+                        .font(Theme.mono(10))
                         .foregroundStyle(Theme.muted)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, Theme.Space.x2)
-            .padding(.vertical, Theme.Space.x2)
-            .background(
-                selected ? Theme.raised : Color.clear,
-                in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-            )
-            .overlay {
-                if selected {
-                    RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                        .strokeBorder(Theme.hairline, lineWidth: 1)
-                }
-            }
+            .padding(.vertical, 6)
+            .background(selected ? Theme.raised : Color.clear)
         }
         .buttonStyle(.plain)
     }
 
-    private var detail: some View {
+    private var inspector: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let entry = model.selected {
-                if let cover = entry.coverURL {
-                    CoverThumb(url: cover, title: entry.profile.displayName)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 200)
-                        .clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.xl, style: .continuous))
-                        .padding(.horizontal, Theme.Space.x8)
-                        .padding(.top, Theme.Space.x8)
-                }
-
-                VStack(alignment: .leading, spacing: Theme.Space.x3) {
-                    Text(entry.profile.displayName)
-                        .font(Theme.sans(32, weight: .semibold))
-                        .tracking(-0.64)
-                        .foregroundStyle(Theme.ink)
-
-                    StatusBadge(text: statusLine(entry), tone: statusTone(entry))
-
-                    if entry.profile.role == .smoke {
-                        Text("Free Windows game. First Play target.")
-                            .font(Theme.sans(14, weight: .regular))
-                            .foregroundStyle(Theme.body)
-                    }
-
-                    if entry.profile.controllerRequired == true {
-                        Text("This game needs a controller.")
-                            .font(Theme.sans(14, weight: .regular))
-                            .foregroundStyle(Theme.body)
-                    }
-
-                    if !model.steam.present {
-                        Text("Open Steam on this Mac to fill the library from games on this computer.")
-                            .font(Theme.sans(14, weight: .regular))
-                            .foregroundStyle(Theme.body)
-                    }
-                }
-                .padding(Theme.Space.x8)
-
-                Spacer(minLength: 0)
-
-                if let banner = model.banner {
-                    Text(banner)
-                        .font(Theme.sans(13, weight: .regular))
-                        .foregroundStyle(Theme.warning)
-                        .padding(Theme.Space.x3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Theme.Radius.md, style: .continuous)
-                                .strokeBorder(Theme.hairline, lineWidth: 1)
-                        }
-                        .padding(.horizontal, Theme.Space.x8)
-                        .padding(.bottom, Theme.Space.x4)
-                }
-
                 HStack(spacing: Theme.Space.x2) {
+                    Text(entry.profile.displayName)
+                        .font(Theme.sans(16, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
                     Spacer()
                     actionButtons(entry)
                 }
-                .padding(.horizontal, Theme.Space.x8)
-                .padding(.vertical, Theme.Space.x4)
-                .overlay(alignment: .top) {
-                    Rectangle().fill(Theme.hairline).frame(height: 1)
+                .padding(Theme.Space.x3)
+
+                if let banner = model.banner {
+                    Text(banner)
+                        .font(Theme.mono(11))
+                        .foregroundStyle(Theme.warning)
+                        .textSelection(.enabled)
+                        .padding(.horizontal, Theme.Space.x3)
+                        .padding(.bottom, Theme.Space.x2)
+                }
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Theme.Space.x1) {
+                        section("title")
+                        KV("id", entry.profile.id)
+                        KV("appid", "\(entry.profile.steamAppId)")
+                        KV("engine", entry.profile.engine)
+                        KV("api", entry.profile.graphicsApi.rawValue)
+                        KV("anticheat", entry.profile.antiCheat.rawValue)
+                        KV("stack", model.session?.stack ?? entry.profile.backend.preferred)
+                        KV("ready", entry.canPlay ? "yes" : "no")
+
+                        section("paths")
+                        KV("install", model.session?.install ?? "—")
+                        KV("exe", model.session?.exe ?? "—")
+                        KV("prefix", model.session?.prefix ?? "—")
+                        KV("cache", model.session?.cache ?? "—")
+                        KV("log", model.session?.logPath ?? "—")
+                        KV("prefixok", (model.session?.prefixReady == true) ? "yes" : "no")
+
+                        section("process")
+                        KV("pid", model.session?.pid.map(String.init) ?? "—")
+                        KV("running", model.session?.running == true ? "yes" : "no")
+                        KV("exit", model.session?.lastExit.map(String.init) ?? "—")
+
+                        section("host")
+                        KV("wine", model.runtime.wine ?? "—")
+                        KV("backend.json", model.runtime.backend.map { $0.wine } ?? "unwritten")
+                        KV("dxvk", model.runtime.backend?.dxvkPath ?? "bundled")
+                        KV("vkd3d", model.runtime.backend?.vkd3dPath ?? "bundled")
+                        KV("moltenvk", model.runtime.backend?.moltenVk ?? "bundled")
+                        KV("support", model.runtime.supportRoot)
+                        KV("steamroot", model.runtime.steamRoot ?? "—")
+
+                        section("env")
+                        ForEach(envRows, id: \.0) { key, value in
+                            KV(key, value)
+                        }
+                    }
+                    .padding(.horizontal, Theme.Space.x3)
+                    .padding(.bottom, Theme.Space.x4)
                 }
             } else {
-                Text(model.loadFailed ? (model.banner ?? "Mogged couldn't load its game list.") : emptyCopy)
-                    .font(Theme.sans(14, weight: .regular))
-                    .foregroundStyle(Theme.body)
-                    .padding(Theme.Space.x8)
+                Text(model.loadFailed ? (model.banner ?? "load failed") : "no title")
+                    .font(Theme.mono(11))
+                    .foregroundStyle(Theme.muted)
+                    .padding(Theme.Space.x3)
                 Spacer()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity)
         .background(Theme.canvas)
     }
 
-    private var emptyCopy: String {
-        if !model.query.isEmpty { return "No games match that search." }
-        if model.steam.present { return "No Windows games found in Steam yet." }
-        return "No games in the library yet."
+    private var envRows: [(String, String)] {
+        let env = model.session?.env ?? [:]
+        let keys = ["WINEPREFIX", "WINEDLLOVERRIDES", "WINEDEBUG", "VK_ICD_FILENAMES", "DXVK_STATE_CACHE_PATH", "SteamDeck"]
+        return keys.compactMap { key in
+            guard let value = env[key], !value.isEmpty else { return nil }
+            return (key, value)
+        }
+    }
+
+    private var logs: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            logPane(title: "runtime.jsonl", body: model.runtimeLog)
+            hairline
+            logPane(title: model.selected.map { "\($0.id).log" } ?? "game.log", body: model.gameLog)
+        }
+        .frame(width: 380)
+        .background(Theme.surface)
+    }
+
+    private func logPane(title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.x1) {
+            Text(title)
+                .font(Theme.mono(10, weight: .medium))
+                .foregroundStyle(Theme.muted)
+                .padding(.horizontal, Theme.Space.x2)
+                .padding(.top, Theme.Space.x2)
+            ScrollView {
+                Text(body.isEmpty ? "—" : body)
+                    .font(Theme.mono(10))
+                    .foregroundStyle(Theme.body)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Theme.Space.x2)
+                    .padding(.bottom, Theme.Space.x2)
+            }
+        }
     }
 
     @ViewBuilder
@@ -214,60 +224,70 @@ struct LibraryView: View {
         if model.runningIds.contains(entry.id) {
             Button("Stop") { Task { await model.stop(entry) } }
                 .buttonStyle(VercelButtonStyle(kind: .secondary))
-        } else if entry.canPlay {
-            Button("Locate") { Task { await model.locate(entry) } }
-                .buttonStyle(VercelButtonStyle(kind: .secondary))
-            Button(model.isBusy ? "Starting…" : "Play") {
-                Task { await model.play(entry) }
-            }
-            .buttonStyle(VercelButtonStyle(kind: .primary, disabled: model.isBusy))
-            .disabled(model.isBusy)
         } else {
             Button("Locate") { Task { await model.locate(entry) } }
-                .buttonStyle(VercelButtonStyle(kind: .primary))
+                .buttonStyle(VercelButtonStyle(kind: .secondary))
+            Button(model.isBusy ? "…" : "Play") { Task { await model.play(entry) } }
+                .buttonStyle(VercelButtonStyle(kind: .primary, disabled: model.isBusy))
+                .disabled(model.isBusy)
         }
     }
 
-    private func statusLine(_ entry: LibraryEntry) -> String {
-        if model.runningIds.contains(entry.id) { return "Running" }
-        if entry.canPlay { return "Ready" }
-        if entry.isInstalled { return "Not installed" }
-        return "Not installed"
-    }
-
-    private func statusTone(_ entry: LibraryEntry) -> StatusBadge.Tone {
-        if model.runningIds.contains(entry.id) { return .running }
-        if entry.canPlay { return .ready }
-        return .idle
+    private func section(_ title: String) -> some View {
+        Text(title)
+            .font(Theme.mono(10, weight: .medium))
+            .foregroundStyle(Theme.muted)
+            .padding(.top, Theme.Space.x3)
+            .padding(.bottom, 2)
     }
 
     private func rowMeta(_ entry: LibraryEntry, running: Bool) -> String {
-        if running { return "Running" }
-        if entry.canPlay { return "Ready" }
-        return "Not installed"
+        var bits = [entry.profile.id]
+        if running { bits.append("run") }
+        else if entry.canPlay { bits.append("exe") }
+        bits.append(entry.profile.antiCheat.rawValue)
+        return bits.joined(separator: " · ")
     }
 }
 
-private struct CoverThumb: View {
-    let url: URL?
-    let title: String
+private struct KV: View {
+    let key: String
+    let value: String
 
-    var body: some View {
-        ZStack {
-            Theme.raised
-            if let url, let image = NSImage(contentsOf: url) {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Text(letter)
-                    .font(Theme.sans(14, weight: .medium))
-                    .foregroundStyle(Theme.muted)
-            }
-        }
+    init(_ key: String, _ value: String) {
+        self.key = key
+        self.value = value
     }
 
-    private var letter: String {
-        String(title.prefix(1)).uppercased()
+    var body: some View {
+        HStack(alignment: .top, spacing: Theme.Space.x2) {
+            Text(key)
+                .font(Theme.mono(10))
+                .foregroundStyle(Theme.muted)
+                .frame(width: 92, alignment: .leading)
+            Text(value)
+                .font(Theme.mono(10))
+                .foregroundStyle(Theme.ink)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private struct MonoStat: View {
+    let label: String
+    let value: String
+    var ok = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(ok ? Theme.success : Theme.accents3)
+                .frame(width: 6, height: 6)
+            Text("\(label) \(value)")
+                .font(Theme.mono(11))
+                .foregroundStyle(Theme.body)
+                .lineLimit(1)
+        }
     }
 }

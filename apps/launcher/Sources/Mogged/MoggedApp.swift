@@ -16,7 +16,7 @@ struct MoggedApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentMinSize)
-        .defaultSize(width: 960, height: 640)
+        .defaultSize(width: 1280, height: 720)
         .commands {
             CommandGroup(replacing: .newItem) {}
         }

@@ -20,7 +20,7 @@ struct LaunchPathTests {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
         let env = WineEnvironment(paths: RuntimePaths(root: home))
-        let trees = try env.ensure(for: "aperture-desk-job")
+        let trees = try env.ensure(for: "apex-legends")
         var isDir: ObjCBool = false
         #expect(FileManager.default.fileExists(atPath: trees.prefix.path, isDirectory: &isDir) && isDir.boolValue)
         #expect(env.needsInit(prefix: trees.prefix))
@@ -34,9 +34,9 @@ struct LaunchPathTests {
         defer { try? FileManager.default.removeItem(at: home) }
         let paths = RuntimePaths(root: home)
         let profile = try smokeProfile()
-        let exe = URL(fileURLWithPath: "/tmp/Aperture Desk Job.exe")
-        let prefix = home.appendingPathComponent("environments/aperture-desk-job")
-        let cache = home.appendingPathComponent("caches/aperture-desk-job")
+        let exe = URL(fileURLWithPath: "/tmp/r5apex.exe")
+        let prefix = home.appendingPathComponent("environments/apex-legends")
+        let cache = home.appendingPathComponent("caches/apex-legends")
         let plan = BackendLauncher(paths: paths).plan(
             profile: profile,
             exe: exe,
@@ -167,7 +167,7 @@ private func makeGameFolder(home: URL, profile: TitleProfile) throws -> URL {
 }
 
 private func smokeProfile() throws -> TitleProfile {
-    try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+    try ProfileLoader.load().first { $0.id == "apex-legends" }!
 }
 
 private func decodeProfile(_ json: String) throws -> TitleProfile {

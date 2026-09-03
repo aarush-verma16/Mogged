@@ -1,0 +1,37 @@
+{
+  "id": "apex-legends",
+  "steamAppId": 1172470,
+  "displayName": "Apex Legends",
+  "role": "smoke",
+  "pinned": true,
+  "engine": "Source 2 / Respawn",
+  "graphicsApi": "d3d11",
+  "antiCheat": "eac",
+  "macNative": false,
+  "backend": {
+    "preferred": "dxvk-moltenvk",
+    "fallback": "moltenvk"
+  },
+  "executables": ["r5apex.exe"],
+  "launch": {
+    "args": ["-dev"],
+    "env": {
+      "SteamDeck": "0"
+    }
+  },
+  "controllerRequired": false,
+  "settings": {
+    "notes": "First Play target. EAC will likely block a real match. We still launch to see how far the stack gets."
+  },
+  "benchmark": {
+    "route": "Boot to title / lobby if anti-cheat allows",
+    "durationSeconds": 60
+  },
+  "knownIssues": [
+    "Easy Anti-Cheat. Online play is expected to fail. Boot and menus are the experiment."
+  ],
+  "research": {
+    "steam": "https://store.steampowered.com/app/1172470/",
+    "protondb": "https://www.protondb.com/app/1172470/"
+  }
+}

@@ -26,6 +26,8 @@ public actor RuntimeSupervisor {
     private let launcher: BackendLauncher
     private let catalog: SteamCatalog
     private var running: [String: ProcessHandle] = [:]
+    private var lastPlan: [String: LaunchPlan] = [:]
+    private var lastExit: [String: Int32] = [:]
 
     public init(
         locator: InstallLocator? = nil,
@@ -66,6 +68,11 @@ public actor RuntimeSupervisor {
 
         if let smoke = profiles.first(where: { $0.role == .smoke }), !seen.contains(smoke.steamAppId) {
             entries.append(makeEntry(profile: smoke, steam: nil))
+        }
+
+        for profile in profiles where profile.isPinned && !seen.contains(profile.steamAppId) && profile.role != .smoke {
+            seen.insert(profile.steamAppId)
+            entries.append(makeEntry(profile: profile, steam: nil))
         }
 
         return entries.sorted(by: Self.sortLibrary)
@@ -133,6 +140,7 @@ public actor RuntimeSupervisor {
         }
 
         running[profile.id] = handle
+        lastPlan[profile.id] = plan
         telemetry.record(
             TelemetryEvent(
                 event: "launch.started",
@@ -176,7 +184,69 @@ public actor RuntimeSupervisor {
 
     private func noteExit(titleId: String, code: Int32) {
         running.removeValue(forKey: titleId)
+        lastExit[titleId] = code
         telemetry.record(TelemetryEvent(event: "launch.exited", titleId: titleId, detail: "code=\(code)"))
+    }
+
+    public func inspectRuntime() -> RuntimeInspect {
+        let snap = catalog.snapshot()
+        let config = configStore.load()
+        let wine = config?.wine ?? probe.wineBinary()
+        let paths = RuntimePaths.standard()
+        return RuntimeInspect(
+            wine: wine,
+            wineReady: backendReady(),
+            backend: config,
+            supportRoot: paths.root.path,
+            logsDir: paths.logs.path,
+            steamPresent: snap.present,
+            steamRunning: snap.running,
+            steamRoot: snap.root?.path,
+            steamAccount: snap.account?.personaName ?? snap.account?.steamId,
+            steamAppCount: snap.apps.count
+        )
+    }
+
+    public func inspectSession(profile: TitleProfile, install: LocatedInstall?) -> SessionInspect {
+        let trees = (
+            prefix: environment.prefixURL(for: profile.id),
+            cache: environment.cacheURL(for: profile.id)
+        )
+        let plan = lastPlan[profile.id] ?? (install?.executable).map {
+            launcher.plan(
+                profile: profile,
+                exe: $0,
+                prefix: trees.prefix,
+                cache: trees.cache,
+                config: configStore.load() ?? BackendConfig(wine: probe.wineBinary() ?? "")
+            )
+        }
+        let handle = running[profile.id]
+        let log = plan?.logURL ?? RuntimePaths.standard().logs.appendingPathComponent("\(profile.id).log")
+        return SessionInspect(
+            titleId: profile.id,
+            pid: handle?.isRunning == true ? handle?.pid : nil,
+            running: handle?.isRunning == true,
+            lastExit: lastExit[profile.id],
+            prefix: trees.prefix.path,
+            cache: trees.cache.path,
+            logPath: log.path,
+            exe: install?.executable?.path ?? plan?.arguments.first,
+            install: install?.path.path,
+            stack: launcher.graphicsStack(for: profile),
+            env: plan?.environment ?? [:],
+            prefixReady: !environment.needsInit(prefix: trees.prefix)
+        )
+    }
+
+    public func telemetryTail() -> String {
+        telemetry.tailJSONL()
+    }
+
+    public func gameLogTail(titleId: String) -> String {
+        let url = lastPlan[titleId]?.logURL
+            ?? RuntimePaths.standard().logs.appendingPathComponent("\(titleId).log")
+        return TelemetryLog.tail(url: url)
     }
 
     private func makeEntry(profile: TitleProfile, steam: SteamLibraryApp?) -> LibraryEntry {
@@ -202,13 +272,20 @@ public actor RuntimeSupervisor {
     }
 
     private static func sortLibrary(_ lhs: LibraryEntry, _ rhs: LibraryEntry) -> Bool {
-        if lhs.profile.role == .smoke && rhs.profile.role != .smoke { return true }
-        if rhs.profile.role == .smoke && lhs.profile.role != .smoke { return false }
+        let l = pinRank(lhs.profile)
+        let r = pinRank(rhs.profile)
+        if l != r { return l < r }
         if lhs.isInstalled != rhs.isInstalled { return lhs.isInstalled && !rhs.isInstalled }
         let lp = lhs.lastPlayed ?? 0
         let rp = rhs.lastPlayed ?? 0
         if lp != rp { return lp > rp }
         return lhs.profile.displayName.localizedCaseInsensitiveCompare(rhs.profile.displayName) == .orderedAscending
+    }
+
+    private static func pinRank(_ profile: TitleProfile) -> Int {
+        if profile.role == .smoke { return 0 }
+        if profile.isPinned { return 1 }
+        return 2
     }
 
     private func fail(_ titleId: String, _ error: MoggedError) {

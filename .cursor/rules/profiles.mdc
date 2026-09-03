@@ -10,8 +10,9 @@ Every playable title needs `profiles/<id>.json` matching `_schema.json`. The lau
 
 Required: `id`, `steamAppId`, `role`, `graphicsApi`, `antiCheat`, `backend`, `executables`.
 
-- `role` is `smoke` | `primary-demo` | `generalize`.
-- `antiCheat` must be `none` for MVP titles. Kernel AC is a reject.
-- `backend.preferred` is `d3dmetal` for D3D11/12 titles. Vulkan-native smoke may use `moltenvk`.
+- `role` is `smoke` | `primary-demo` | `generalize` | `catalog`.
+- `pinned: true` keeps a title in the library even if Steam does not have it.
+- Operator eval titles may set `antiCheat` to `eac` / `other` (ADR-010). Do not pretend they will pass online.
+- `backend.preferred` is `dxvk-moltenvk` (D3D9/11) or `vkd3d-moltenvk` (D3D12) or `moltenvk` (Vulkan).
 - Game-specific env and launch args live here, not in the runtime default env.
 - `knownIssues` is a list of strings we still owe a fix. Do not delete an issue because it is embarrassing.

@@ -30,7 +30,7 @@ There is no week-based plan. Do not add one.
 
 ## Title ladder (locked)
 
-- Smoke: free Windows Steam game (default Aperture Desk Job, `1902490`).
+- Smoke: Apex Legends (`1172470`), then Marvel Rivals (`2767030`). Anti-cheat will likely block online. [docs/GAMES.md](docs/GAMES.md).
 - Primary demo: Marvel's Spider-Man Remastered (`1817070`).
 - Not MVP: Elden Ring, kernel anti-cheat, live-service shooters.
 

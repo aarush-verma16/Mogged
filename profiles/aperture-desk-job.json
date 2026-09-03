@@ -2,7 +2,8 @@
   "id": "aperture-desk-job",
   "steamAppId": 1902490,
   "displayName": "Aperture Desk Job",
-  "role": "smoke",
+  "role": "generalize",
+  "pinned": false,
   "engine": "Source 2",
   "graphicsApi": "vulkan",
   "antiCheat": "none",
@@ -30,6 +31,6 @@
   ],
   "research": {
     "steam": "https://store.steampowered.com/app/1902490/",
-    "why": "Free, small, no AC, no Mac native. First Play-button target."
+    "why": "Old plumbing title. Not pinned."
   }
 }

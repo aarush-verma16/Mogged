@@ -20,6 +20,10 @@
     "steamAppId": { "type": "integer" },
     "displayName": { "type": "string" },
     "role": { "enum": ["smoke", "primary-demo", "generalize", "catalog"] },
+    "pinned": {
+      "type": "boolean",
+      "description": "Always list this title even if Steam does not have it yet"
+    },
     "engine": { "type": "string" },
     "graphicsApi": {
       "enum": ["d3d9", "d3d11", "d3d12", "vulkan", "opengl", "mixed"]

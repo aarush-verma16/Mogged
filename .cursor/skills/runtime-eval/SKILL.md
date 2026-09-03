@@ -19,7 +19,7 @@ Update `/docs/STATUS.md`:
 
 | Backend | Title | Booted | Manual steps | Notes |
 | --- | --- | --- | --- | --- |
-| wine + moltenvk | aperture-desk-job | | | |
+| wine + dxvk | apex-legends | | | |
 
 Decision 1 is already accepted (OSS Wine stack). Do not reopen it to add paid software.
 
