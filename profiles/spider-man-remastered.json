@@ -8,8 +8,8 @@
   "antiCheat": "none",
   "macNative": false,
   "backend": {
-    "preferred": "d3dmetal",
-    "fallback": "vkd3d-moltenvk"
+    "preferred": "vkd3d-moltenvk",
+    "fallback": "dxvk-moltenvk"
   },
   "executables": ["Spider-Man.exe"],
   "launch": {

@@ -52,7 +52,15 @@ enum MoggedRuntimeCLI {
             guard let profile = profiles.first(where: { $0.id == args[1] }) else {
                 throw MoggedError.gameNotFound(args[1])
             }
-            _ = try await supervisor.launch(profile: profile)
+            let state = try await supervisor.launch(profile: profile)
+            print("started\t\(state.titleId)\t\(state.pid)")
+        case "stop":
+            guard args.count >= 2 else {
+                fputs("usage: mogged-runtime stop <title-id>\n", stderr)
+                exit(2)
+            }
+            try await supervisor.stop(titleId: args[1])
+            print("stopped\t\(args[1])")
         case "help", "-h", "--help":
             printUsage()
         default:
@@ -66,7 +74,7 @@ enum MoggedRuntimeCLI {
         print(
             """
             mogged-runtime — hidden helper, not a user-facing app
-            commands: list | detect | status | launch <title-id>
+            commands: list | detect | status | launch <title-id> | stop <title-id>
             """
         )
     }

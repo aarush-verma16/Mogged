@@ -15,12 +15,16 @@ public struct TelemetryEvent: Codable, Sendable {
 }
 
 public struct TelemetryLog: Sendable {
-    public init() {}
+    private let paths: RuntimePaths
+
+    public init(paths: RuntimePaths = .standard()) {
+        self.paths = paths
+    }
 
     public func record(_ event: TelemetryEvent) {
         do {
-            try AppSupport.ensureDirectories()
-            let url = AppSupport.logsDirectory.appendingPathComponent("runtime.jsonl")
+            try paths.ensure()
+            let url = paths.logs.appendingPathComponent("runtime.jsonl")
             var line = try JSONEncoder().encode(event)
             line.append(contentsOf: [0x0A])
             if FileManager.default.fileExists(atPath: url.path) {

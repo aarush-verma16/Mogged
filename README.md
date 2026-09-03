@@ -8,6 +8,8 @@ This is not a compatibility manager, not a bottle GUI, and not a Wine/CrossOver 
 
 **[docs/MILESTONES.md](docs/MILESTONES.md)** — the only plan. Milestones have exit criteria. No weeks, no calendar.
 
+**[docs/BUILD.md](docs/BUILD.md)** — free stack only (Wine + DXVK + vkd3d-proton + MoltenVK). Zero paid software.
+
 Current snapshot: [docs/STATUS.md](docs/STATUS.md).
 
 Proof titles: free Steam smoke game → *Marvel's Spider-Man Remastered* → a second engine later. Elden Ring is not MVP.
@@ -29,6 +31,7 @@ Also: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [docs/BR
 ```bash
 git checkout dev
 npm test
+npm run bootstrap   # Homebrew Wine + MoltenVK, once
 npm start
 ```
 

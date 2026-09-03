@@ -166,4 +166,14 @@ The user never touches this. Mogged writes it. Mogged reads it. Swappable later.
 
 See `docs/STATUS.md` for what is actually done. This file is the plan.
 
-**Next build task:** M0 smoke test → then wire M1 `RuntimeSupervisor.launch()`.
+**Current build task:** `npm run bootstrap` (Wine on this Mac), then Play the smoke title.
+
+Spawn is wired:
+
+| File | Status |
+| --- | --- |
+| `runtime/Sources/MoggedRuntime/WineEnvironment.swift` | done |
+| `runtime/Sources/MoggedRuntime/BackendLauncher.swift` | done |
+| `runtime/Sources/MoggedRuntime/ProcessHandle.swift` | done |
+| `runtime/Sources/MoggedRuntime/RuntimeSupervisor.swift` | launch + stop live |
+| `~/Library/Application Support/Mogged/backend.json` | written on first launch |

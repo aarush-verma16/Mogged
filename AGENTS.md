@@ -14,6 +14,7 @@ Mogged is the product. It is not a Wine app, not a GPTK wrapper with a coat of p
 | --- | --- |
 | Why this exists | [docs/VISION.md](docs/VISION.md) |
 | **What to do next** | [docs/MILESTONES.md](docs/MILESTONES.md) |
+| How we build the stack | [docs/BUILD.md](docs/BUILD.md) |
 | Where we are | [docs/STATUS.md](docs/STATUS.md) |
 | Git branches | [docs/BRANCHING.md](docs/BRANCHING.md) |
 | Stack | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
@@ -40,7 +41,7 @@ Knobs live in `profiles/*.json`, never hardcoded in the launcher.
 1. **Desktop app first.** All user-facing work lives in `apps/launcher/` as a real Mac app.
 2. **Hidden runtime.** `runtime/` may spawn an eval/shipping backend. The app never looks like a toolkit.
 3. **Do not write a Windows/DirectX translator.** Embed or call a backend; concentrate on detection, profiles, caches, input, telemetry, Play.
-4. **GPTK is eval-only.** Local install for testing is fine. Do not bundle Apple's toolkit. Shipping implications: [docs/LEGAL.md](docs/LEGAL.md).
+4. **Zero paid software.** Wine + DXVK + vkd3d-proton + MoltenVK. Do not buy CrossOver. Do not install GPTK. [docs/BUILD.md](docs/BUILD.md), [docs/LEGAL.md](docs/LEGAL.md).
 5. **Measure.** Performance claims need `tools/benchmark` output ([docs/TELEMETRY.md](docs/TELEMETRY.md)).
 6. **Current milestone only.** Finish exit criteria in `docs/MILESTONES.md` before optional work on the next one.
 7. **MVP scope.** No cloud, store, anti-cheat, third title, or brand system.

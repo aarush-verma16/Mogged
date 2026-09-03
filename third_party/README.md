@@ -1,12 +1,14 @@
 # Third party
 
-Place for future **git submodules** of OSS execution/graphics components we may embed after Decision 1. Empty until then.
+Vendored Wine / DXVK / vkd3d-proton / MoltenVK builds go here when we ship them inside Mogged.app.
 
-Do **not** put here:
+Do not commit the binaries. Paths:
 
-- Apple Game Porting Toolkit DMG or cellar
-- CrossOver.app
-- Steam
-- Game installs or prefixes
+```
+third_party/wine/bin/wine64
+third_party/dxvk/x64/*.dll
+third_party/vkd3d-proton/x64/*.dll
+third_party/moltenvk/libMoltenVK.dylib
+```
 
-See `docs/LEGAL.md`. Mogged.app is not this folder.
+Until those exist, the runtime uses Homebrew Wine and MoltenVK on this Mac. See `scripts/bootstrap-runtime.sh`.

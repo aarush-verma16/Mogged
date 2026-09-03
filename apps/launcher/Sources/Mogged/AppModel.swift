@@ -14,6 +14,7 @@ final class AppModel {
     var loadFailed = false
 
     private let supervisor = RuntimeSupervisor()
+    private var watchTask: Task<Void, Never>?
 
     var selected: LibraryEntry? {
         entries.first { $0.id == selectedId } ?? entries.first
@@ -48,6 +49,7 @@ final class AppModel {
         do {
             _ = try await supervisor.launch(profile: entry.profile)
             await refresh()
+            watchRunning()
         } catch let error as MoggedError {
             banner = error.userMessage
         } catch {
@@ -76,6 +78,18 @@ final class AppModel {
             selectedId = entry.id
         } catch {
             banner = "Couldn't save that folder."
+        }
+    }
+
+    private func watchRunning() {
+        watchTask?.cancel()
+        watchTask = Task { [supervisor] in
+            while !Task.isCancelled {
+                let ids = await supervisor.runningTitleIds()
+                runningIds = Set(ids)
+                if ids.isEmpty { break }
+                try? await Task.sleep(for: .seconds(1))
+            }
         }
     }
 

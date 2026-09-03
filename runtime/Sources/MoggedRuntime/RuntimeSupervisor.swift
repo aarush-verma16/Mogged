@@ -18,18 +18,27 @@ public actor RuntimeSupervisor {
     private let library: LibraryStore
     private let probe: BackendProbe
     private let telemetry: TelemetryLog
-    private var running: [String: Process] = [:]
+    private let configStore: BackendConfigStore
+    private let environment: WineEnvironment
+    private let launcher: BackendLauncher
+    private var running: [String: ProcessHandle] = [:]
 
     public init(
         locator: InstallLocator = InstallLocator(),
         library: LibraryStore = LibraryStore(),
         probe: BackendProbe = BackendProbe(),
-        telemetry: TelemetryLog = TelemetryLog()
+        telemetry: TelemetryLog = TelemetryLog(),
+        configStore: BackendConfigStore = BackendConfigStore(),
+        environment: WineEnvironment = WineEnvironment(),
+        launcher: BackendLauncher = BackendLauncher()
     ) {
         self.locator = locator
         self.library = library
         self.probe = probe
         self.telemetry = telemetry
+        self.configStore = configStore
+        self.environment = environment
+        self.launcher = launcher
     }
 
     public func libraryEntries(profiles: [TitleProfile]) -> [LibraryEntry] {
@@ -57,41 +66,106 @@ public actor RuntimeSupervisor {
 
         let override = library.overridePath(for: profile.id)
         guard let install = locator.locate(profile: profile, overridePath: override) else {
-            telemetry.record(TelemetryEvent(event: "launch.failed", titleId: profile.id, detail: MoggedError.gameNotFound(profile.id).logDescription))
+            fail(profile.id, MoggedError.gameNotFound(profile.id))
             throw MoggedError.gameNotFound(profile.id)
         }
 
         guard let exe = install.executable else {
-            telemetry.record(TelemetryEvent(event: "launch.failed", titleId: profile.id, detail: "exe missing"))
+            fail(profile.id, "exe missing")
             throw MoggedError.executableNotFound(profile.executables.first ?? profile.id)
         }
 
-        guard probe.isAvailable else {
-            telemetry.record(TelemetryEvent(event: "launch.failed", titleId: profile.id, detail: MoggedError.runtimeUnavailable.logDescription))
+        let config: BackendConfig
+        do {
+            config = try configStore.resolve(discover: { probe.wineBinary() })
+        } catch {
+            fail(profile.id, MoggedError.runtimeUnavailable.logDescription)
             throw MoggedError.runtimeUnavailable
         }
 
-        // Real backend spawn lands in M1 once an eval engine is installed on this Mac.
-        // We refuse rather than exec a .exe with open(1) and calling that a launch.
-        _ = exe
-        telemetry.record(TelemetryEvent(event: "launch.blocked", titleId: profile.id, detail: "backend present but spawn not wired"))
-        throw MoggedError.runtimeUnavailable
+        let trees: (prefix: URL, cache: URL)
+        do {
+            trees = try environment.ensure(for: profile.id)
+        } catch {
+            fail(profile.id, "environment create failed")
+            throw MoggedError.launchFailed
+        }
+
+        preparePrefix(prefix: trees.prefix, profile: profile, config: config)
+
+        let plan = launcher.plan(
+            profile: profile,
+            exe: exe,
+            prefix: trees.prefix,
+            cache: trees.cache,
+            config: config
+        )
+
+        let titleId = profile.id
+        let handle: ProcessHandle
+        do {
+            handle = try ProcessHandle.spawn(plan) { [weak self] code in
+                guard let self else { return }
+                Task { await self.noteExit(titleId: titleId, code: code) }
+            }
+        } catch {
+            fail(profile.id, MoggedError.launchFailed.logDescription)
+            throw MoggedError.launchFailed
+        }
+
+        running[profile.id] = handle
+        telemetry.record(
+            TelemetryEvent(
+                event: "launch.started",
+                titleId: profile.id,
+                detail: "pid=\(handle.pid) stack=\(launcher.graphicsStack(for: profile))"
+            )
+        )
+        return LaunchState(titleId: profile.id, pid: handle.pid)
     }
 
     public func stop(titleId: String) throws {
-        guard let process = running.removeValue(forKey: titleId) else {
+        guard let handle = running.removeValue(forKey: titleId) else {
             throw MoggedError.notRunning(titleId)
         }
-        process.terminate()
+        handle.terminate()
         telemetry.record(TelemetryEvent(event: "launch.stopped", titleId: titleId))
     }
 
     public func runningTitleIds() -> [String] {
-        Array(running.keys)
+        running = running.filter { $0.value.isRunning }
+        return Array(running.keys)
     }
 
     public func backendReady() -> Bool {
-        probe.isAvailable
+        if let existing = configStore.load(), existing.wineIsExecutable {
+            return true
+        }
+        return probe.isAvailable
+    }
+
+    private func preparePrefix(prefix: URL, profile: TitleProfile, config: BackendConfig) {
+        if environment.needsInit(prefix: prefix) {
+            let boot = launcher.winebootPlan(prefix: prefix, config: config)
+            if let handle = try? ProcessHandle.spawn(boot) {
+                _ = handle.waitUntilExit(timeout: 120)
+            }
+            try? environment.markReady(prefix: prefix)
+        }
+        launcher.overlayTranslationDLLs(prefix: prefix, profile: profile, config: config)
+    }
+
+    private func noteExit(titleId: String, code: Int32) {
+        running.removeValue(forKey: titleId)
+        telemetry.record(TelemetryEvent(event: "launch.exited", titleId: titleId, detail: "code=\(code)"))
+    }
+
+    private func fail(_ titleId: String, _ error: MoggedError) {
+        telemetry.record(TelemetryEvent(event: "launch.failed", titleId: titleId, detail: error.logDescription))
+    }
+
+    private func fail(_ titleId: String, _ detail: String) {
+        telemetry.record(TelemetryEvent(event: "launch.failed", titleId: titleId, detail: detail))
     }
 
     private func roleRank(_ role: TitleProfile.Role) -> Int {

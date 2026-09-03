@@ -15,7 +15,7 @@ Mogged is a **native macOS desktop application**. Only that process is user-faci
                    │ swappable backend
 ┌──────────────────▼──────────────────────────┐
 │  Game execution (not the product)           │
-│  DirectX → Metal (D3DMetal preferred)       │
+│  Wine → DXVK / vkd3d-proton → MoltenVK      │
 │  Metal on Apple Silicon                     │
 └─────────────────────────────────────────────┘
 ```
@@ -33,33 +33,28 @@ Per-title JSON in `profiles/` is the contract. Game-specific flags belong there,
 
 - Spawns the Windows game, applies profile env/args, persists shader/PSO caches, collects logs.
 - One isolated game environment per title (shared Steam library allowed if needed). The user never names or configures it.
-- Backend is **injected by config** (`d3dmetal` | `dxvk-moltenvk` | `moltenvk` | `vkd3d-moltenvk`). The app does not hardcode a vendor toolkit path.
+- Backend is **injected by config** (`dxvk-moltenvk` | `vkd3d-moltenvk` | `moltenvk`). Wine path lives in `backend.json`, written on first run. The app does not hardcode a vendor toolkit path.
 
-## Decision 1 (open): which execution backend
+## Decision 1 (accepted): free OSS stack
 
-We evaluate locally so Spider-Man can actually start. That is not the same as "Mogged is built on X."
+Zero paid software. See [BUILD.md](BUILD.md) and ADR-002.
 
-| Local eval | Why we touch it | Ship inside Mogged.app? |
+| Component | Role | Ship inside Mogged.app? |
 | --- | --- | --- |
-| Apple GPTK (D3DMetal) | Fastest check that a title can run well on this Mac | **No** — eval/dev license. See [LEGAL.md](LEGAL.md). |
-| CrossOver | Commercial D3DMetal stack, title workarounds | Only with an OEM/license deal. |
-| Other D3DMetal / DX→Metal engines | Possible shipping path | Only with a license we can redistribute. |
+| Wine (LGPL) | Win32 API / PE loader | Yes — with LGPL compliance |
+| DXVK | D3D9/10/11 → Vulkan | Yes |
+| vkd3d-proton | D3D12 → Vulkan | Yes — with LGPL compliance |
+| MoltenVK | Vulkan → Metal | Yes |
 
-Until Decision 1 closes:
-
-- Benchmark GPTK and CrossOver **on the machine** (M0).
-- Design launcher ↔ runtime as if the backend is replaceable.
-- Do not build UI around a specific toolkit.
-- Do not vendor GPTK.
-
-Record the call in [DECISIONS.md](DECISIONS.md). Milestone sequence: [MILESTONES.md](MILESTONES.md).
+GPTK and CrossOver are not part of the product and are not installed for this build.
 
 ## Graphics (where performance lives)
 
 Spider-Man Remastered is **Direct3D 12**. DXVK does not translate D3D12.
 
-1. **D3DMetal** — D3D12 → Metal. Path to beat.
-2. **vkd3d-proton → Vulkan → MoltenVK → Metal** — extra hops. Fallback only.
+1. **vkd3d-proton → Vulkan → MoltenVK → Metal** — shipping D3D12 path.
+2. **DXVK → MoltenVK** — D3D9/11 titles.
+3. **MoltenVK** — native Vulkan titles (smoke).
 
 NVIDIA DLSS will not exist on this Mac. Prefer **FSR** in-game and/or **MetalFX**. Ray tracing off for the MVP bar unless a benchmark says it is free.
 

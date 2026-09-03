@@ -44,19 +44,18 @@ We launch games the user already owns. We do not redistribute Spider-Man, Steam,
 
 | Action | Allowed now? |
 | --- | --- |
-| Install GPTK + CrossOver on a company/personal M-series Mac | Yes |
+| Install Homebrew Wine + MoltenVK on this Mac | Yes |
+| Buy or install CrossOver / GPTK | **No** — [BUILD.md](BUILD.md) |
 | Benchmark titles, write profiles, build the launcher against a swap-able runtime interface | Yes |
 | Commit game files, Steam tokens, GPTK DMGs, CrossOver.app, Wine prefixes | No |
-| Ship an alpha to friends that bundles GPTK | No |
-| Ship an alpha that launches a user-installed CrossOver/GPTK | Ask counsel first |
-| Ship an alpha that bundles LGPL Wine with a proper notice | Ask counsel; technically the usual OSS path |
+| Ship an alpha that bundles GPTK | No |
+| Ship an alpha that bundles LGPL Wine with a proper notice | Ask counsel; this is the intended path |
 
 ## Founder task (not skippable)
 
 Before we treat Mogged as something we **share** (M1+ binaries leaving this Mac):
 
-1. Read the current GPTK license text in the Apple Developer download, not a blog summary.
-2. Decide how a shipping `.app` may legally execute Windows games (OEM backend, OSS embed with compliance, or local-only until that's solved).
-3. Write the answer into `docs/DECISIONS.md` as ADR-002.
+1. Confirm LGPL compliance for Wine and vkd3d-proton (dynamic link, notices, source pointer).
+2. Write any remaining counsel notes into ADR-002.
 
-M0 (getting a game to boot locally on our Mac) does not wait on (2). Any **shared** build does.
+M0 (getting a game to boot locally on our Mac) does not wait on counsel. Any **shared** build does.

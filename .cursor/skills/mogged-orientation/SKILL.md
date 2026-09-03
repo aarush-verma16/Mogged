@@ -10,13 +10,14 @@ Before coding, read:
 1. `/AGENTS.md`
 2. `/docs/STATUS.md` (current milestone)
 3. `/docs/MILESTONES.md` (the plan)
-4. Task-specific: `/docs/GAMES.md`, `/docs/ARCHITECTURE.md`, `/docs/LEGAL.md`, `/docs/TELEMETRY.md`
+4. `/docs/BUILD.md` (free stack)
+5. Task-specific: `/docs/GAMES.md`, `/docs/ARCHITECTURE.md`, `/docs/LEGAL.md`, `/docs/TELEMETRY.md`
 
 ## Reminders
 
 - Product: native Mac desktop app. Play. Not a toolkit frontend.
 - Plan: milestones with exit criteria. No weeks.
 - Do not write a Windows/DX translator. Hidden runtime + profiles + telemetry.
-- GPTK = local eval only (`docs/LEGAL.md`).
+- Zero paid software. Wine + DXVK + vkd3d-proton + MoltenVK (`docs/BUILD.md`).
 - Smoke = free Steam game. Demo = Spider-Man Remastered. Not Elden Ring.
 - After a milestone or decision, update STATUS, MILESTONES, DECISIONS.

@@ -2,11 +2,11 @@
 
 Living snapshot. Last updated: 2026-09-03. If this disagrees with code, fix this file in the same change.
 
-Plan: [MILESTONES.md](MILESTONES.md). Branches: [BRANCHING.md](BRANCHING.md).
+Plan: [MILESTONES.md](MILESTONES.md). Build: [BUILD.md](BUILD.md). Branches: [BRANCHING.md](BRANCHING.md).
 
 ## Current milestone
 
-**M0 — Foundation** (in progress), **M1 started** (app shell exists).
+**M0 — Foundation** (in progress), **M1 started** (Play now calls real spawn).
 
 Done:
 
@@ -14,14 +14,15 @@ Done:
 - Desktop-app identity (ADR-006).
 - `dev` / `main` workflow.
 - Native SwiftUI app loads the library from profiles. Locate + Play call the hidden runtime.
-- Runtime tests cover profile decode, user-facing copy, and install lookup.
+- Runtime tests cover profile decode, user-facing copy, install lookup, and launch/stop through a fake Wine.
+- `RuntimeSupervisor.launch` creates a per-title environment, execs Wine, tracks PID, writes JSONL, Stop kills the process.
+- Decision 1 accepted: free Wine + DXVK + vkd3d-proton + MoltenVK. No paid software.
 
 Not done:
 
-- No eval backend installed on this Mac (GPTK / CrossOver not present).
-- Play still cannot spawn a Windows game (supervisor refuses until spawn is wired **and** a backend exists).
-- GPTK license notes in ADR-002.
-- Smoke title not booted yet.
+- Wine is **not installed** on this Mac yet. Run `npm run bootstrap`.
+- Smoke title not installed / not booted.
+- DXVK / vkd3d-proton / MoltenVK not vendored in `third_party/` yet.
 
 ## Hardware
 
@@ -38,10 +39,10 @@ Not done:
 | ADR-005 | Not Elden Ring | accepted |
 | ADR-004 | No toolkit names in the UI | accepted |
 | ADR-003 | Smoke + Spider-Man ladder | accepted |
-| ADR-002 | Shipping vs eval backends | proposed |
+| ADR-002 | Shipping runtime = OSS Wine stack | accepted |
 | ADR-001 | Monorepo | accepted |
 | ADR-000 | Do not write a Windows/DX translator | accepted |
-| Decision 1 | Which execution backend to call from runtime | **open** |
+| Decision 1 | Wine + DXVK/vkd3d + MoltenVK | **accepted** |
 | Smoke title | Aperture Desk Job default | **confirm after first boot** |
 
 ## Titles
@@ -58,6 +59,6 @@ None. Do not claim performance.
 
 ## Next
 
-1. Install GPTK and/or CrossOver locally (M0). Do not commit them.
-2. Wire `RuntimeSupervisor.launch` to spawn through the detected backend.
-3. Click Play on the smoke title from Mogged.app.
+1. `npm run bootstrap` — Homebrew Wine + MoltenVK on this Mac (free).
+2. Install the smoke title (Windows Steam build).
+3. Click Play from Mogged.app. Record the first boot in this file.

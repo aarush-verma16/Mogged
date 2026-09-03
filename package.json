@@ -7,6 +7,7 @@
     "dev": "zsh scripts/run-mogged.sh",
     "build": "swift build --package-path apps/launcher",
     "test": "zsh scripts/test.sh",
-    "runtime": "swift run --package-path runtime mogged-runtime"
+    "runtime": "swift run --package-path runtime mogged-runtime",
+    "bootstrap": "zsh scripts/bootstrap-runtime.sh"
   }
 }

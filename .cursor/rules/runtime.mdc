@@ -8,8 +8,8 @@ alwaysApply: false
 
 Not the product. Creates isolated game environments, sets env, spawns the Windows exe, collects logs.
 
-- Backend binary is **injected by config**, not compiled in as "the app."
+- Backend binary is **injected by config** (`backend.json`), not compiled in as "the app."
 - Never require the user to run third-party config utilities.
 - Persist shader/PSO caches outside throwaway dirs when possible.
 - Crash = wrap backend logs in a Mogged report; never show raw engine traces in the UI.
-- Do not vendor GPTK. Do not copy CrossOver.app into this tree.
+- Free stack only: Wine + DXVK + vkd3d-proton + MoltenVK. Do not vendor GPTK. Do not copy CrossOver.app into this tree.

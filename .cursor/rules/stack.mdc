@@ -6,14 +6,14 @@ alwaysApply: true
 # Stack
 
 ```
-Mogged.app (Swift desktop) → hidden runtime → D3DMetal (or fallback) → Metal
+Mogged.app (Swift desktop) → hidden runtime → Wine + DXVK/vkd3d-proton + MoltenVK → Metal
 ```
 
-The desktop app is the product. Keep the execution backend **swappable** (`d3dmetal` | `dxvk-moltenvk` | `moltenvk`). Do not hardcode GPTK paths in the launcher. Do not design UI around a toolkit.
+The desktop app is the product. Keep the execution backend **swappable** (`dxvk-moltenvk` | `vkd3d-moltenvk` | `moltenvk`). Do not hardcode a vendor toolkit path in the launcher. Do not design UI around a toolkit. Zero paid software.
 
 ## Graphics
 
-- Spider-Man Remastered is **D3D12**. DXVK will not translate it. Prefer D3DMetal.
+- Spider-Man Remastered is **D3D12**. DXVK will not translate it. Use vkd3d-proton → MoltenVK.
 - DLSS does not exist here. Use FSR in-game and/or MetalFX. Ray tracing off unless a benchmark says otherwise.
 - Title-specific env and upscaler choices belong in `profiles/*.json`, not in Swift.
 

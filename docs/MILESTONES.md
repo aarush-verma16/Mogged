@@ -7,7 +7,7 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 | ID | Milestone | Status |
 | --- | --- | --- |
 | **M0** | Machine can run a Windows game; Mogged is defined as a desktop app | **current** |
-| **M1** | Mogged.app: click Play, smoke title runs | **started** (app + runtime; launch not live) |
+| **M1** | Mogged.app: click Play, smoke title runs | **started** (spawn wired; needs Wine + game) |
 | **M2** | Spider-Man Remastered reaches gameplay through Mogged | not started |
 | **M3** | Spider-Man hits the quality bar | not started |
 | **M4** | A second, different-engine title uses the same pipeline | not started |
@@ -41,9 +41,9 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 **Exit (all of these):**
 
 - [x] `apps/launcher` is a native macOS desktop app (Swift). Play / Stop. No compatibility-manager screens.
-- [ ] Hidden `runtime/` creates whatever it needs and launches the smoke title. The user never touches a config file.
-- [ ] A non-technical person can open Mogged, click Play, and get into the smoke title.
-- [ ] Crash/FPS logging exists even if it is developer-only ([TELEMETRY.md](TELEMETRY.md)).
+- [x] Hidden `runtime/` creates a per-title environment and can exec the game through Wine. The user never touches a config file (`backend.json` is auto-written).
+- [ ] A non-technical person can open Mogged, click Play, and get into the smoke title (blocked on Wine install + game files).
+- [x] Crash/session logging exists even if it is developer-only ([TELEMETRY.md](TELEMETRY.md)).
 
 **Work:** Desktop app shell, install detection, profile apply, one-click launch. Hide the engine. Do not chase frame rate.
 

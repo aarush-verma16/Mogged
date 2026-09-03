@@ -35,14 +35,19 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 - **Status:** accepted (smoke title still confirmable)
 - **Decision:** Smoke = free Windows Steam game (default Aperture Desk Job). Primary = Spider-Man Remastered. Second title TBD in **M4**. No third title in MVP.
 - **Why:** Need a zero-cost plumbing test before buying/installing a 80GB+ DX12 game, then one demanding single-player proof.
-- **Open:** Confirm Aperture Desk Job after first GPTK/CrossOver boot; swap using `GAMES.md` shortlist if it teaches nothing about our stack.
+- **Open:** Confirm Aperture Desk Job after first Wine boot; swap using `GAMES.md` shortlist if it teaches nothing about our stack.
 
 ## ADR-002 — Shipping runtime license
 
-- **Status:** proposed
-- **Leaning:** Use GPTK and CrossOver as **local test harnesses** in M0. Never redistribute Apple's toolkit. A shipping Mogged.app may only embed a backend we have license to distribute (OEM deal, or an OSS engine with compliance). That backend is not the product name.
-- **Why:** GPTK is evaluation/development (non-commercial distribution of the Apple Software). CrossOver is commercial. OSS Windows-API stacks (e.g. LGPL) are a possible embed path, not a brand.
-- **Block:** Counsel must read the current GPTK license and any embed obligations before any build leaves this machine. Local Play on our Macs is not blocked.
+- **Status:** accepted (local product path). Counsel still required before any binary leaves this Mac.
+- **Decision:** The execution stack is **Wine (LGPL) + DXVK + vkd3d-proton + MoltenVK**. Zero paid software. We do not buy CrossOver. We do not install or redistribute Apple GPTK.
+- **Why:** We need a Windows-game runtime we can actually ship inside Mogged.app. GPTK is eval-only. CrossOver is paid. The OSS stack is the only path that matches [BUILD.md](BUILD.md).
+- **Block:** LGPL notices + dynamic linking before a shared `.app`. Local Play on this Mac is not blocked.
+
+## Decision 1 — Execution backend
+
+- **Status:** accepted
+- **Decision:** Hidden runtime calls Wine. Graphics: `moltenvk` (Vulkan), `dxvk-moltenvk` (D3D9/11), `vkd3d-moltenvk` (D3D12). Path is in `~/Library/Application Support/Mogged/backend.json`, auto-written on first run.
 
 ## ADR-001 — Monorepo
 

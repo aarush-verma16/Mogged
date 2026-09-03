@@ -9,7 +9,7 @@
   "macNative": false,
   "backend": {
     "preferred": "moltenvk",
-    "fallback": "d3dmetal"
+    "fallback": "dxvk-moltenvk"
   },
   "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
   "launch": {

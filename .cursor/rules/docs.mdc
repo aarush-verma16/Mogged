@@ -6,10 +6,10 @@ alwaysApply: false
 
 # Docs
 
-`docs/MILESTONES.md` is the plan. `docs/STATUS.md` is the snapshot. `docs/DECISIONS.md` is append-only ADRs. When a milestone exit is hit, update all three in the same change.
+`docs/MILESTONES.md` is the plan. `docs/BUILD.md` is the free-stack build. `docs/STATUS.md` is the snapshot. `docs/DECISIONS.md` is append-only ADRs. When a milestone exit is hit, update STATUS, MILESTONES, and DECISIONS in the same change.
 
 No week numbers, sprint calendars, or "this week" headings. Milestones have exit criteria only.
 
 Title facts belong in `docs/GAMES.md` plus `profiles/`.
 
-Mogged is a desktop app. Do not describe it as a Wine/GPTK/CrossOver product. GPTK is eval-only unless ADR-002 says otherwise (it does not).
+Mogged is a desktop app. Do not describe it as a Wine/GPTK/CrossOver product. Zero paid software. Stack is in `docs/BUILD.md`.

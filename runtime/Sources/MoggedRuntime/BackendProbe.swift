@@ -8,48 +8,62 @@ public struct BackendProbe: Sendable {
     }
 
     public enum Kind: String, Sendable {
-        case gptk
-        case crossover
         case wine
     }
 
-    public init() {}
+    private let forcedWine: String?
+    private let discover: Bool
+
+    public init() {
+        self.forcedWine = nil
+        self.discover = true
+    }
+
+    /// Test seam: skip PATH lookup.
+    public init(fixedWine: String?) {
+        self.forcedWine = fixedWine
+        self.discover = false
+    }
 
     public func detect() -> [Detection] {
-        var found: [Detection] = []
-        let fm = FileManager.default
+        if let wine = wineBinary() {
+            return [Detection(kind: .wine, path: wine)]
+        }
+        return []
+    }
 
-        let crossover = "/Applications/CrossOver.app"
-        if fm.fileExists(atPath: crossover) {
-            found.append(Detection(kind: .crossover, path: crossover))
+    public var isAvailable: Bool { wineBinary() != nil }
+
+    public func wineBinary() -> String? {
+        if !discover { return forcedWine }
+
+        if let env = ProcessInfo.processInfo.environment["MOGGED_WINE"],
+           FileManager.default.isExecutableFile(atPath: env)
+        {
+            return env
         }
 
         let pathDirs = (ProcessInfo.processInfo.environment["PATH"] ?? "")
             .split(separator: ":")
             .map(String.init)
 
-        for name in ["gameportingtoolkit", "gptk"] {
-            if let bin = which(name, pathDirs: pathDirs) {
-                found.append(Detection(kind: .gptk, path: bin))
+        let extras = [
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/opt/homebrew/opt/wine-stable/bin",
+            "/usr/local/opt/wine-stable/bin",
+        ]
+
+        if let third = ThirdParty.root() {
+            let bundled = third.appendingPathComponent("wine/bin").path
+            if let found = which("wine64", pathDirs: [bundled]) ?? which("wine", pathDirs: [bundled]) {
+                return found
             }
         }
 
-        let cellarHints = [
-            "/opt/homebrew/opt/game-porting-toolkit",
-            "/usr/local/opt/game-porting-toolkit",
-        ]
-        for hint in cellarHints where fm.fileExists(atPath: hint) {
-            found.append(Detection(kind: .gptk, path: hint))
-        }
-
-        if let wine = which("wine64", pathDirs: pathDirs) ?? which("wine", pathDirs: pathDirs) {
-            found.append(Detection(kind: .wine, path: wine))
-        }
-
-        return found
+        return which("wine64", pathDirs: pathDirs + extras)
+            ?? which("wine", pathDirs: pathDirs + extras)
     }
-
-    public var isAvailable: Bool { !detect().isEmpty }
 
     private func which(_ name: String, pathDirs: [String]) -> String? {
         for dir in pathDirs {
