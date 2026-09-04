@@ -8,6 +8,7 @@
     "build": "swift build --package-path apps/launcher",
     "test": "zsh scripts/test.sh",
     "runtime": "swift run --package-path runtime mogged-runtime",
-    "bootstrap": "zsh scripts/bootstrap-runtime.sh"
+    "bootstrap": "zsh scripts/bootstrap-runtime.sh",
+    "fetch": "zsh scripts/fetch-windows-title.sh"
   }
 }

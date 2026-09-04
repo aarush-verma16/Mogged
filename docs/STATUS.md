@@ -21,7 +21,7 @@ Done:
 
 Not done:
 
-- No Apex / Rivals / Steam library on this Mac. Play has nothing to exec except after Locate.
+- No Apex / Rivals files on disk yet. **Downloader is now a script:** `STEAM_USER=you npm run fetch -- apex-legends` (SteamCMD, Windows platform). Not wired into the app — Mogged is not a store. The Mac Steam GUI cannot install these titles.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
 - No game has drawn pixels. No FPS number. Do not claim smoothness.
@@ -83,6 +83,6 @@ None. Do not claim performance. Native 4K + ray tracing + uncapped FPS will cook
 
 ## Next
 
-1. Put Apex (or any Windows game folder with `r5apex.exe`) on this Mac — Steam or Locate.
-2. Play. Watch operator `opt` (`DXVK_FRAME_RATE`, thermal) and the title log.
+1. `STEAM_USER=you npm run fetch -- apex-legends` — SteamCMD downloads the **Windows** Apex files (Mac Steam cannot). Then Play.
+2. Watch operator `opt` (`DXVK_FRAME_RATE`, thermal) and the title log.
 3. Record boot vs anti-cheat death. Then vkd3d-proton for Rivals.

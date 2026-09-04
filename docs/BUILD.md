@@ -163,7 +163,7 @@ The user never touches this. Mogged writes it. Mogged reads it. Swappable later.
 
 See `docs/STATUS.md` for what is actually done. This file is the plan.
 
-**Current build task:** `npm run bootstrap` (Wine on this Mac), then Play the smoke title.
+**Current build task:** `STEAM_USER=you npm run fetch -- apex-legends` (Windows depot via SteamCMD), then Play.
 
 Spawn is wired:
 
