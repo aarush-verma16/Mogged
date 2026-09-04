@@ -18,6 +18,10 @@ final class AppModel {
     var session: SessionInspect?
     var runtimeLog = ""
     var gameLog = ""
+    var install: InstallSnapshot?
+    var steamUser = UserDefaults.standard.string(forKey: "mogged.steamUser") ?? ""
+    var steamPassword = ""
+    var steamGuard = ""
 
     private let supervisor = RuntimeSupervisor()
     private var pollTask: Task<Void, Never>?
@@ -56,6 +60,10 @@ final class AppModel {
                 gameLog = await supervisor.gameLogTail(titleId: entry.id)
             }
             runtimeLog = await supervisor.telemetryTail()
+            install = await supervisor.inspectInstall()
+            if let install, install.titleId == selectedId, install.running || !(selected?.canPlay ?? false) {
+                if !install.log.isEmpty { gameLog = install.log }
+            }
         } catch let error as MoggedError {
             loadFailed = true
             banner = error.logDescription
@@ -73,7 +81,7 @@ final class AppModel {
             _ = try await supervisor.launch(profile: entry.profile)
             await refresh()
         } catch let error as MoggedError {
-            banner = error.logDescription
+            banner = error.userMessage
             await refresh()
         } catch {
             banner = String(describing: error)
@@ -90,6 +98,32 @@ final class AppModel {
         } catch {
             banner = String(describing: error)
         }
+    }
+
+    func install(_ entry: LibraryEntry) async {
+        banner = nil
+        UserDefaults.standard.set(steamUser, forKey: "mogged.steamUser")
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            try await supervisor.startInstall(
+                profile: entry.profile,
+                username: steamUser,
+                password: steamPassword,
+                guardCode: steamGuard.isEmpty ? nil : steamGuard
+            )
+            await refresh()
+        } catch let error as MoggedError {
+            banner = error.userMessage
+            await refresh()
+        } catch {
+            banner = String(describing: error)
+        }
+    }
+
+    func cancelInstall() async {
+        await supervisor.cancelInstall()
+        await refresh()
     }
 
     func locate(_ entry: LibraryEntry) async {

@@ -22,6 +22,8 @@ public struct RuntimePaths: Sendable, Equatable {
     public var backendURL: URL { root.appendingPathComponent("backend.json") }
     public var environments: URL { root.appendingPathComponent("environments", isDirectory: true) }
     public var caches: URL { root.appendingPathComponent("caches", isDirectory: true) }
+    public var steamcmd: URL { root.appendingPathComponent("steamcmd", isDirectory: true) }
+    public var games: URL { root.appendingPathComponent("games", isDirectory: true) }
 
     public func ensure() throws {
         let fm = FileManager.default
@@ -29,5 +31,7 @@ public struct RuntimePaths: Sendable, Equatable {
         try fm.createDirectory(at: logs, withIntermediateDirectories: true)
         try fm.createDirectory(at: environments, withIntermediateDirectories: true)
         try fm.createDirectory(at: caches, withIntermediateDirectories: true)
+        try fm.createDirectory(at: steamcmd, withIntermediateDirectories: true)
+        try fm.createDirectory(at: games, withIntermediateDirectories: true)
     }
 }

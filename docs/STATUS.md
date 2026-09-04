@@ -13,7 +13,7 @@ Done:
 - Repo, docs, rules, profiles.
 - Desktop-app identity (ADR-006).
 - `dev` / `main` workflow.
-- Native SwiftUI **operator** console: Wine, prefix, PID, env, Steam disk, live logs, optimization policy. Apex then Rivals pinned. Spider-Man not shown unless Steam has it.
+- Native SwiftUI **operator** console: Install (Steam Windows depot + live %), Play, Stop, Locate, Wine, prefix, PID, env, logs, optimization. Apex then Rivals pinned.
 - Runtime tests cover profile decode, user-facing copy, install lookup, launch/stop through a fake Wine, and thermal FPS caps.
 - `RuntimeSupervisor.launch` creates a per-title environment, execs Wine, tracks PID, writes JSONL, Stop kills the process.
 - Optimization layer: thermal → FPS cap (60/40/30), FSR Quality, RT off (ADR-011). v1 is **this Mac**.
@@ -21,7 +21,7 @@ Done:
 
 Not done:
 
-- No Apex / Rivals files on disk yet. **Downloader is now a script:** `STEAM_USER=you npm run fetch -- apex-legends` (SteamCMD, Windows platform). Not wired into the app — Mogged is not a store. The Mac Steam GUI cannot install these titles.
+- No Apex / Rivals files on disk yet. **Install is in the app:** Steam user + password + Guard → Install. Progress and `install-*.log` stream in the operator console. Terminal `npm run fetch` still works.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
 - No game has drawn pixels. No FPS number. Do not claim smoothness.
@@ -83,6 +83,6 @@ None. Do not claim performance. Native 4K + ray tracing + uncapped FPS will cook
 
 ## Next
 
-1. `STEAM_USER=you npm run fetch -- apex-legends` — SteamCMD downloads the **Windows** Apex files (Mac Steam cannot). Then Play.
-2. Watch operator `opt` (`DXVK_FRAME_RATE`, thermal) and the title log.
+1. Open Mogged. Select Apex. Enter Steam user / password / Guard if asked. Click **Install**. Watch % and the install log.
+2. When ready is yes, **Play**. Watch operator `opt` and the title log.
 3. Record boot vs anti-cheat death. Then vkd3d-proton for Rivals.

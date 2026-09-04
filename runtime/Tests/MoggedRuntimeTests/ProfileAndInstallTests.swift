@@ -31,6 +31,9 @@ func userMessagesOmitToolkitNames() {
         .alreadyRunning("x"),
         .notRunning("x"),
         .launchFailed,
+        .alreadyInstalling("x"),
+        .installFailed("x"),
+        .installNeedsAccount,
     ]
     let banned = ["wine", "gptk", "crossover", "proton", "bottle", "prefix", "winetricks"]
     for error in errors {
@@ -76,4 +79,15 @@ func locatesSteamInstallFromManifest() throws {
     let locator = InstallLocator()
     let install = locator.steamInstall(appId: profile.steamAppId, libraryRoot: steamapps)
     #expect(install?.lastPathComponent == "Apex")
+}
+
+@Test
+func parsesSteamCmdProgress() {
+    let line = "Update state (0x61) downloading, progress: 12.45 (1.2 GB / 74 GB)"
+    let parsed = DepotProgress.parse(line)
+    #expect(parsed?.phase == "Installing")
+    #expect(abs((parsed?.fraction ?? 0) - 0.1245) < 0.0001)
+    #expect(parsed?.bytes == "1.2 GB / 74 GB")
+    let verify = DepotProgress.parse("Update state (0x81) verifying installed files, progress: 55.00 (x / y)")
+    #expect(verify?.phase == "Updating")
 }

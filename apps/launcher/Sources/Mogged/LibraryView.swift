@@ -36,6 +36,9 @@ struct LibraryView: View {
             MonoStat(label: "wine", value: model.runtime.wine ?? "missing", ok: model.runtime.wineReady)
             MonoStat(label: "steam", value: steamValue, ok: model.runtime.steamRunning)
             MonoStat(label: "apps", value: "\(model.runtime.steamAppCount)", ok: model.runtime.steamPresent)
+            if let inst = model.install, inst.running {
+                MonoStat(label: "install", value: inst.percentLabel, ok: true)
+            }
             if let pid = model.session?.pid {
                 MonoStat(label: "pid", value: "\(pid)", ok: true)
             }
@@ -85,8 +88,9 @@ struct LibraryView: View {
             model.selectedId = entry.id
         } label: {
             HStack(spacing: Theme.Space.x2) {
+                let installing = model.install?.titleId == entry.id && model.install?.running == true
                 Circle()
-                    .fill(running ? Theme.blue : (entry.canPlay ? Theme.success : Theme.accents3))
+                    .fill(running || installing ? Theme.blue : (entry.canPlay ? Theme.success : Theme.accents3))
                     .frame(width: 6, height: 6)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(entry.profile.displayName)
@@ -128,6 +132,8 @@ struct LibraryView: View {
                         .padding(.bottom, Theme.Space.x2)
                 }
 
+                accountBar
+
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Space.x1) {
                         section("title")
@@ -138,6 +144,8 @@ struct LibraryView: View {
                         KV("anticheat", entry.profile.antiCheat.rawValue)
                         KV("stack", model.session?.stack ?? entry.profile.backend.preferred)
                         KV("ready", entry.canPlay ? "yes" : "no")
+
+                        installSection(entry)
 
                         section("paths")
                         KV("install", model.session?.install ?? "—")
@@ -201,7 +209,7 @@ struct LibraryView: View {
         VStack(alignment: .leading, spacing: 0) {
             logPane(title: "runtime.jsonl", body: model.runtimeLog)
             hairline
-            logPane(title: model.selected.map { "\($0.id).log" } ?? "game.log", body: model.gameLog)
+            logPane(title: logTitle, body: model.gameLog)
         }
         .frame(width: 380)
         .background(Theme.surface)
@@ -226,17 +234,89 @@ struct LibraryView: View {
         }
     }
 
+    private var logTitle: String {
+        if let inst = model.install, inst.titleId == model.selectedId, inst.running || !(model.selected?.canPlay ?? false) {
+            return "install-\(inst.titleId).log"
+        }
+        return model.selected.map { "\($0.id).log" } ?? "game.log"
+    }
+
+    @ViewBuilder
+    private var accountBar: some View {
+        @Bindable var model = model
+        VStack(alignment: .leading, spacing: Theme.Space.x1) {
+            HStack(spacing: Theme.Space.x2) {
+                TextField("steam user", text: $model.steamUser)
+                    .textFieldStyle(.plain)
+                    .font(Theme.mono(11))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, Theme.Space.x2)
+                    .frame(height: 28)
+                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+                SecureField("password", text: $model.steamPassword)
+                    .textFieldStyle(.plain)
+                    .font(Theme.mono(11))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, Theme.Space.x2)
+                    .frame(height: 28)
+                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+                SecureField("guard", text: $model.steamGuard)
+                    .textFieldStyle(.plain)
+                    .font(Theme.mono(11))
+                    .foregroundStyle(Theme.ink)
+                    .padding(.horizontal, Theme.Space.x2)
+                    .frame(width: 88, height: 28)
+                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+            }
+            Text("Windows depot via your Steam account. Password stays in memory. ~50–80 GB.")
+                .font(Theme.mono(10))
+                .foregroundStyle(Theme.muted)
+        }
+        .padding(.horizontal, Theme.Space.x3)
+        .padding(.bottom, Theme.Space.x2)
+    }
+
+    @ViewBuilder
+    private func installSection(_ entry: LibraryEntry) -> some View {
+        let inst = model.install
+        let active = inst?.titleId == entry.id
+        section("install")
+        KV("state", active ? (inst?.percentLabel ?? "—") : (entry.canPlay ? "ready" : "missing"))
+        KV("bytes", (active ? inst?.bytes : nil) ?? "—")
+        KV("line", (active ? inst?.line : nil) ?? "—")
+        KV("dest", (active ? inst?.path : nil) ?? "—")
+        if active, inst?.running == true {
+            ProgressView(value: inst?.fraction ?? 0)
+                .tint(Theme.blue)
+                .padding(.top, 4)
+        }
+    }
+
     @ViewBuilder
     private func actionButtons(_ entry: LibraryEntry) -> some View {
+        let installing = model.install?.titleId == entry.id && model.install?.running == true
         if model.runningIds.contains(entry.id) {
             Button("Stop") { Task { await model.stop(entry) } }
                 .buttonStyle(VercelButtonStyle(kind: .secondary))
+        } else if installing {
+            Button("Stop") { Task { await model.cancelInstall() } }
+                .buttonStyle(VercelButtonStyle(kind: .secondary))
+            Text("Installing")
+                .font(Theme.sans(14, weight: .medium))
+                .foregroundStyle(Theme.body)
         } else {
             Button("Locate") { Task { await model.locate(entry) } }
                 .buttonStyle(VercelButtonStyle(kind: .secondary))
-            Button(model.isBusy ? "…" : "Play") { Task { await model.play(entry) } }
-                .buttonStyle(VercelButtonStyle(kind: .primary, disabled: model.isBusy))
-                .disabled(model.isBusy)
+            if entry.canPlay {
+                Button(model.isBusy ? "…" : "Play") { Task { await model.play(entry) } }
+                    .buttonStyle(VercelButtonStyle(kind: .primary, disabled: model.isBusy))
+                    .disabled(model.isBusy)
+            } else {
+                let blocked = model.isBusy || model.steamUser.isEmpty || model.steamPassword.isEmpty
+                Button(model.isBusy ? "…" : "Install") { Task { await model.install(entry) } }
+                    .buttonStyle(VercelButtonStyle(kind: .primary, disabled: blocked))
+                    .disabled(blocked)
+            }
         }
     }
 
@@ -251,7 +331,11 @@ struct LibraryView: View {
     private func rowMeta(_ entry: LibraryEntry, running: Bool) -> String {
         var bits = [entry.profile.id]
         if running { bits.append("run") }
+        else if model.install?.titleId == entry.id, model.install?.running == true {
+            bits.append(model.install?.percentLabel ?? "Installing")
+        }
         else if entry.canPlay { bits.append("exe") }
+        else { bits.append("missing") }
         bits.append(entry.profile.antiCheat.rawValue)
         return bits.joined(separator: " · ")
     }

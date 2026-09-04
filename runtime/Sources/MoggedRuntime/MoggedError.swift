@@ -9,6 +9,9 @@ public enum MoggedError: Error, Equatable {
     case alreadyRunning(String)
     case notRunning(String)
     case launchFailed
+    case alreadyInstalling(String)
+    case installFailed(String)
+    case installNeedsAccount
 
     /// Shown in the app. Never names a toolkit.
     public var userMessage: String {
@@ -16,7 +19,7 @@ public enum MoggedError: Error, Equatable {
         case .profilesNotFound, .invalidProfile:
             return "Mogged couldn't load its game list."
         case .gameNotFound:
-            return "This game isn't installed. Locate the folder to add it."
+            return "This game isn't installed. Install it, or Locate the folder."
         case .executableNotFound:
             return "Mogged found the folder, but not the game."
         case .runtimeUnavailable:
@@ -27,6 +30,12 @@ public enum MoggedError: Error, Equatable {
             return "That game isn't running."
         case .launchFailed:
             return "Couldn't start the game."
+        case .alreadyInstalling:
+            return "This game is already installing."
+        case .installFailed:
+            return "Couldn't install this game."
+        case .installNeedsAccount:
+            return "Enter your Steam account to install."
         }
     }
 
@@ -48,6 +57,12 @@ public enum MoggedError: Error, Equatable {
             return "not running \(id)"
         case .launchFailed:
             return "backend spawn failed"
+        case .alreadyInstalling(let id):
+            return "already installing \(id)"
+        case .installFailed(let detail):
+            return "install failed: \(detail)"
+        case .installNeedsAccount:
+            return "steam account required"
         }
     }
 }

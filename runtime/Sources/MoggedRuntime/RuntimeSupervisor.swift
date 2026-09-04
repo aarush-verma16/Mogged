@@ -25,6 +25,7 @@ public actor RuntimeSupervisor {
     private let environment: WineEnvironment
     private let launcher: BackendLauncher
     private let catalog: SteamCatalog
+    private let installer: DepotInstaller
     private var running: [String: ProcessHandle] = [:]
     private var lastPlan: [String: LaunchPlan] = [:]
     private var lastExit: [String: Int32] = [:]
@@ -37,7 +38,8 @@ public actor RuntimeSupervisor {
         configStore: BackendConfigStore = BackendConfigStore(),
         environment: WineEnvironment = WineEnvironment(),
         launcher: BackendLauncher = BackendLauncher(),
-        catalog: SteamCatalog = SteamCatalog()
+        catalog: SteamCatalog = SteamCatalog(),
+        installer: DepotInstaller = DepotInstaller()
     ) {
         self.catalog = catalog
         self.locator = locator ?? InstallLocator(catalog: catalog)
@@ -47,6 +49,7 @@ public actor RuntimeSupervisor {
         self.configStore = configStore
         self.environment = environment
         self.launcher = launcher
+        self.installer = installer
     }
 
     public func steamSnapshot() -> SteamSnapshot {
@@ -81,6 +84,39 @@ public actor RuntimeSupervisor {
     public func rememberInstall(titleId: String, folder: URL) throws {
         try library.setOverride(titleId: titleId, path: folder.path)
         telemetry.record(TelemetryEvent(event: "library.located", titleId: titleId, detail: folder.path))
+    }
+
+    public func startInstall(
+        profile: TitleProfile,
+        username: String,
+        password: String,
+        guardCode: String?
+    ) async throws {
+        if running[profile.id] != nil {
+            throw MoggedError.alreadyRunning(profile.id)
+        }
+        telemetry.record(TelemetryEvent(event: "install.requested", titleId: profile.id))
+        try await installer.ensureSteamCMD()
+        try installer.start(
+            profile: profile,
+            username: username,
+            password: password,
+            guardCode: guardCode
+        ) { [weak self] snap in
+            guard let self else { return }
+            Task { await self.noteInstallExit(snap) }
+        }
+        telemetry.record(TelemetryEvent(event: "install.started", titleId: profile.id))
+    }
+
+    public func cancelInstall() {
+        installer.cancel()
+        telemetry.record(TelemetryEvent(event: "install.stopped", titleId: installer.current().titleId))
+    }
+
+    public func inspectInstall() -> InstallSnapshot? {
+        let snap = installer.current()
+        return snap.titleId.isEmpty ? nil : snap
     }
 
     public func launch(profile: TitleProfile) throws -> LaunchState {
@@ -288,6 +324,17 @@ public actor RuntimeSupervisor {
         if profile.role == .smoke { return 0 }
         if profile.isPinned { return 1 }
         return 2
+    }
+
+    private func noteInstallExit(_ snap: InstallSnapshot) {
+        if snap.succeeded {
+            try? library.setOverride(titleId: snap.titleId, path: snap.path)
+            telemetry.record(TelemetryEvent(event: "install.finished", titleId: snap.titleId, detail: snap.path))
+        } else {
+            telemetry.record(
+                TelemetryEvent(event: "install.failed", titleId: snap.titleId, detail: snap.error ?? snap.line)
+            )
+        }
     }
 
     private func fail(_ titleId: String, _ error: MoggedError) {
