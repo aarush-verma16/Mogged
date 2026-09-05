@@ -55,6 +55,24 @@ struct LaunchPathTests {
     }
 
     @Test
+    func moltenVkUsesJsonICDNotDylib() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let wineRoot = home.appendingPathComponent("wine")
+        let icd = wineRoot.appendingPathComponent("lib/wine/x86_64-unix/vulkan/icd.d/MoltenVK_icd.json")
+        try FileManager.default.createDirectory(at: icd.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: wineRoot.appendingPathComponent("lib"), withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: icd)
+        try Data().write(to: wineRoot.appendingPathComponent("lib/libMoltenVK.dylib"))
+        let wine = wineRoot.appendingPathComponent("bin/wine")
+
+        let found = BackendLauncher.moltenVkPaths(wine: wine, configured: "bundled")
+        #expect(found?.icd == icd.path)
+        #expect(found?.libDir == wineRoot.appendingPathComponent("lib").path)
+        #expect(!(found?.icd.hasSuffix(".dylib") ?? true))
+    }
+
+    @Test
     func deskJobLaunchesFromGameFolderWithDXVK() throws {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -74,6 +92,7 @@ struct LaunchPathTests {
         )
         #expect(plan.arguments.contains("-game"))
         #expect(plan.arguments.contains("steampal"))
+        #expect(plan.arguments.contains("-novr"))
         #expect(plan.workingDirectory.lastPathComponent == "game")
         #expect(plan.environment["WINEDLLOVERRIDES"] == "d3d11,d3d10core=n,b")
         #expect(plan.environment["SteamAppId"] == "1902490")

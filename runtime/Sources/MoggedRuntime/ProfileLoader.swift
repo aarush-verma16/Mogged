@@ -22,14 +22,17 @@ public enum ProfileLoader {
     }
 
     public static func profilesDirectory() throws -> URL {
-        if let bundled = Bundle.main.resourceURL?.appendingPathComponent("profiles", isDirectory: true),
-           directoryHasProfiles(bundled)
-        {
-            return bundled
-        }
+        let isApp = Bundle.main.bundleURL.pathExtension == "app"
 
-        let staged = RuntimePaths.standard().profiles
-        if directoryHasProfiles(staged) { return staged }
+        if isApp {
+            if let bundled = Bundle.main.resourceURL?.appendingPathComponent("profiles", isDirectory: true),
+               directoryHasProfiles(bundled)
+            {
+                return bundled
+            }
+            let staged = RuntimePaths.standard().profiles
+            if directoryHasProfiles(staged) { return staged }
+        }
 
         if let env = ProcessInfo.processInfo.environment["MOGGED_PROFILES"] {
             let url = URL(fileURLWithPath: env, isDirectory: true)
@@ -37,7 +40,7 @@ public enum ProfileLoader {
         }
 
         // Tests / CLI only. The .app must not read the repo (it lives on Desktop and re-prompts).
-        if Bundle.main.bundleURL.pathExtension != "app" {
+        if !isApp {
             var walker = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             for _ in 0..<10 {
                 let candidate = walker.appendingPathComponent("profiles", isDirectory: true)

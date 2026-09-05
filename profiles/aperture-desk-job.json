@@ -14,7 +14,7 @@
   },
   "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
   "launch": {
-    "args": ["-game", "steampal"],
+    "args": ["-game", "steampal", "-novr"],
     "workingDirectory": "game",
     "env": {
       "SteamDeck": "0",

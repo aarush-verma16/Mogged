@@ -60,7 +60,12 @@ public struct BackendLauncher: Sendable {
             env["WINEDLLOVERRIDES"] = overrides
         }
 
-        if let molten = moltenVkPaths(config: config) {
+        writeDxvkConf()
+        env["DXVK_CONFIG_FILE"] = paths.caches.appendingPathComponent("dxvk.conf").path
+        env["ENABLE_VKBASALT"] = "0"
+        env["DISABLE_VK_LAYER_VALVE_steam_overlay_1"] = "1"
+
+        if let molten = Self.moltenVkPaths(wine: config.wineURL, configured: config.moltenVk) {
             env["VK_ICD_FILENAMES"] = molten.icd
             env["VK_DRIVER_FILES"] = molten.icd
             env["DYLD_LIBRARY_PATH"] = joinedPath(molten.libDir, ProcessInfo.processInfo.environment["DYLD_LIBRARY_PATH"])
@@ -176,42 +181,52 @@ public struct BackendLauncher: Sendable {
         }
     }
 
-    private func moltenVkPaths(config: BackendConfig) -> (icd: String, libDir: String)? {
-        let candidates: [URL] = {
-            var urls: [URL] = []
-            if config.moltenVk != "bundled" {
-                urls.append(URL(fileURLWithPath: config.moltenVk))
-            }
-            if let third = ThirdParty.root() {
-                urls.append(third.appendingPathComponent("moltenvk"))
-            }
-            urls.append(URL(fileURLWithPath: "/opt/homebrew/lib"))
-            urls.append(URL(fileURLWithPath: "/usr/local/lib"))
-            return urls
-        }()
-
+    /// ICD must be a JSON file. A raw dylib as VK_ICD_FILENAMES drops VK_KHR_surface and games exit 5.
+    public static func moltenVkPaths(wine: URL, configured: String) -> (icd: String, libDir: String)? {
         let fm = FileManager.default
-        for dir in candidates {
-            let dylib = dir.path.hasSuffix(".dylib")
-                ? dir
-                : dir.appendingPathComponent("libMoltenVK.dylib")
-            if fm.fileExists(atPath: dylib.path) {
-                let libDir = dylib.deletingLastPathComponent()
-                let icd = icdJSON(near: libDir) ?? dylib.path
-                return (icd, libDir.path)
-            }
+        var icds: [URL] = []
+        if configured != "bundled" {
+            icds.append(URL(fileURLWithPath: configured))
+        }
+
+        let wineRoot = wine.deletingLastPathComponent().deletingLastPathComponent()
+        icds.append(contentsOf: [
+            wineRoot.appendingPathComponent("lib/wine/x86_64-unix/vulkan/icd.d/MoltenVK_icd.json"),
+            wineRoot.appendingPathComponent("share/vulkan/icd.d/MoltenVK_icd.json"),
+            URL(fileURLWithPath: "/opt/homebrew/etc/vulkan/icd.d/MoltenVK_icd.json"),
+            URL(fileURLWithPath: "/opt/homebrew/share/vulkan/icd.d/MoltenVK_icd.json"),
+            URL(fileURLWithPath: "/usr/local/etc/vulkan/icd.d/MoltenVK_icd.json"),
+            URL(fileURLWithPath: "/usr/local/share/vulkan/icd.d/MoltenVK_icd.json"),
+        ])
+
+        for icd in icds {
+            guard icd.pathExtension.lowercased() == "json", fm.fileExists(atPath: icd.path) else { continue }
+            let libDir = libDirForICD(icd, wineRoot: wineRoot)
+            return (icd.path, libDir.path)
         }
         return nil
     }
 
-    private func icdJSON(near libDir: URL) -> String? {
-        let fm = FileManager.default
-        let hints = [
-            libDir.deletingLastPathComponent().appendingPathComponent("share/vulkan/icd.d/MoltenVK_icd.json"),
-            URL(fileURLWithPath: "/opt/homebrew/share/vulkan/icd.d/MoltenVK_icd.json"),
-            URL(fileURLWithPath: "/usr/local/share/vulkan/icd.d/MoltenVK_icd.json"),
-        ]
-        return hints.first { fm.fileExists(atPath: $0.path) }?.path
+    private static func libDirForICD(_ icd: URL, wineRoot: URL) -> URL {
+        let wineLib = wineRoot.appendingPathComponent("lib/libMoltenVK.dylib")
+        if FileManager.default.fileExists(atPath: wineLib.path) {
+            return wineLib.deletingLastPathComponent()
+        }
+        let brew = URL(fileURLWithPath: "/opt/homebrew/lib/libMoltenVK.dylib")
+        if FileManager.default.fileExists(atPath: brew.path) {
+            return brew.deletingLastPathComponent()
+        }
+        return icd.deletingLastPathComponent()
+    }
+
+    private func writeDxvkConf() {
+        let url = paths.caches.appendingPathComponent("dxvk.conf")
+        try? FileManager.default.createDirectory(at: paths.caches, withIntermediateDirectories: true)
+        let body = """
+        dxvk.enableOpenVR = False
+        dxvk.enableOpenXR = False
+        """
+        try? body.write(to: url, atomically: true, encoding: .utf8)
     }
 
     private func resolvedDir(_ value: String, bundled: [String]) -> URL? {
