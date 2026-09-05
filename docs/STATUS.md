@@ -24,7 +24,7 @@ Done:
 
 Not done:
 
-- **Steam Input is still not initialized.** Desk Job shows "Unable to initialize Steam Input" over the rendered scene and will not go past it. Steam installs into the environment and connects, but no sign-in has completed yet: the client had no stored account to sign in with (ADR-015), and the interactive login screen is unusable. Untested end to end.
+- **Steam Input is still not initialized.** Desk Job shows "Unable to initialize Steam Input" over the rendered scene and will not go past it. Measured 2026-09-05: the client's first `-login` on a fresh prefix comes back **"Account Logon Denied"** — SteamCMD's device trust (used for Install) does not carry over to the graphical client, which wants its own one-time code. Mogged now reads the client's own log to notice this instead of retrying the same denied login forever, and reuses the account's existing "code" field to ask for it (ADR-015 update). Getting an actual code into that field and confirming Steam Input comes up is untested end to end.
 - No benchmark file yet. The 60 FPS above is the game's own overlay on a title screen, not `tools/benchmark` output, and not the quality bar.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
