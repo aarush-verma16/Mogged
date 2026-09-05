@@ -312,8 +312,16 @@ struct LibraryView: View {
                     .padding(.horizontal, Theme.Space.x2)
                     .frame(width: 88, height: 28)
                     .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+                Button(model.credentialsSaved ? "saved" : "Save") { model.saveCredentials() }
+                    .buttonStyle(.plain)
+                    .font(Theme.mono(10, weight: .medium))
+                    .foregroundStyle(model.credentialsSaved ? Theme.success : Theme.ink)
+                Button("forget") { model.forgetCredentials() }
+                    .buttonStyle(.plain)
+                    .font(Theme.mono(10))
+                    .foregroundStyle(Theme.muted)
             }
-            Text("Install Aperture Desk Job first (~3 GB, no anti-cheat). Password stays in memory.")
+            Text("guard = Steam app or email code (one-time, never saved). Save stores user+password in the Mac Keychain.")
                 .font(Theme.mono(10))
                 .foregroundStyle(Theme.muted)
         }

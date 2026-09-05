@@ -22,9 +22,10 @@ final class AppModel {
     var lastError: String?
     var errorLog = ""
     var logTab: LogTab = .errors
-    var steamUser = UserDefaults.standard.string(forKey: "mogged.steamUser") ?? ""
+    var steamUser = ""
     var steamPassword = ""
     var steamGuard = ""
+    var credentialsSaved = false
 
     enum LogTab: String, CaseIterable, Identifiable {
         case errors
@@ -52,6 +53,7 @@ final class AppModel {
     }
 
     func bootstrap() async {
+        loadSavedCredentials()
         await refresh()
         if selectedId == nil {
             selectedId = entries.first(where: { $0.profile.role == .smoke })?.id ?? entries.first?.id
@@ -129,7 +131,7 @@ final class AppModel {
 
     func install(_ entry: LibraryEntry) async {
         banner = nil
-        UserDefaults.standard.set(steamUser, forKey: "mogged.steamUser")
+        saveCredentials()
         isBusy = true
         defer { isBusy = false }
         do {
@@ -188,6 +190,30 @@ final class AppModel {
         if lastError == trimmed { return }
         lastError = trimmed
         logTab = .errors
+    }
+
+    func saveCredentials() {
+        SteamKeychain.save(user: steamUser, password: steamPassword)
+        UserDefaults.standard.removeObject(forKey: "mogged.steamUser")
+        credentialsSaved = SteamKeychain.load() != nil
+    }
+
+    func forgetCredentials() {
+        SteamKeychain.delete()
+        steamPassword = ""
+        steamGuard = ""
+        credentialsSaved = false
+    }
+
+    private func loadSavedCredentials() {
+        if let saved = SteamKeychain.load() {
+            steamUser = saved.user
+            steamPassword = saved.password
+            credentialsSaved = true
+            return
+        }
+        steamUser = UserDefaults.standard.string(forKey: "mogged.steamUser") ?? ""
+        credentialsSaved = false
     }
 
     private func startPolling() {
