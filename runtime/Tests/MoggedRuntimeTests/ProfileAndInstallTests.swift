@@ -6,14 +6,16 @@ import Testing
 func repoProfilesDecode() throws {
     let profiles = try ProfileLoader.load()
     let ids = Set(profiles.map(\.id))
+    #expect(ids.contains("aperture-desk-job"))
     #expect(ids.contains("apex-legends"))
     #expect(ids.contains("marvel-rivals"))
     #expect(ids.contains("spider-man-remastered"))
 
     let smoke = try #require(profiles.first { $0.role == .smoke })
-    #expect(smoke.id == "apex-legends")
-    #expect(smoke.steamAppId == 1_172_470)
-    #expect(smoke.antiCheat == .eac)
+    #expect(smoke.id == "aperture-desk-job")
+    #expect(smoke.steamAppId == 1_902_490)
+    #expect(smoke.antiCheat == .none)
+    #expect(smoke.settings?.isSafeBoot == true)
 
     let demo = try #require(profiles.first { $0.role == .primaryDemo })
     #expect(demo.graphicsApi == .d3d12)

@@ -6,6 +6,12 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-012 — First boot is Aperture Desk Job
+
+- **Status:** accepted
+- **Decision:** The first Install / Play on this Mac is **Aperture Desk Job** (`1902490`): free, ~3 GB, no anti-cheat, Windows-only. Apex and Rivals stay pinned founder targets (ADR-010) but are **not** the first download. Smoke role moves to Desk Job.
+- **Why:** Founder asked for a light title that will not fill the disk or cook the machine. Apex/Rivals are 50–90 GB and have kernel anti-cheat. Desk Job proves Play is safe before those.
+
 ## ADR-011 — v1 runs on this Mac; we own the optimization layer
 
 - **Status:** accepted

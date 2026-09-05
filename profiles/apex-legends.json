@@ -2,7 +2,7 @@
   "id": "apex-legends",
   "steamAppId": 1172470,
   "displayName": "Apex Legends",
-  "role": "smoke",
+  "role": "generalize",
   "pinned": true,
   "engine": "Source 2 / Respawn",
   "graphicsApi": "d3d11",
@@ -23,7 +23,9 @@
     "settings": {
     "upscaler": "fsr-quality",
     "rayTracing": "off",
-    "notes": "Smooth + FSR Quality. RT off. FPS capped by the optimization layer so this Mac does not cook."
+    "safeBoot": false,
+    "diskBudgetGB": 90,
+    "notes": "Heavy. EAC. Do not Install until Aperture Desk Job has booted. FPS capped so this Mac does not cook."
   },
   "benchmark": {
     "route": "Boot to title / lobby if anti-cheat allows",

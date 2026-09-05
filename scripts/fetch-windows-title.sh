@@ -5,28 +5,37 @@ set -euo pipefail
 # Mogged is not a store — this is an operator script. Uses your Steam account.
 # Never commit games, steamcmd, or credentials.
 
-TITLE="${1:-apex-legends}"
+TITLE="${1:-aperture-desk-job}"
 ROOT="${MOGGED_HOME:-$HOME/Library/Application Support/Mogged}"
 STEAMCMD_DIR="$ROOT/steamcmd"
 GAMES="$ROOT/games"
 LIBRARY_JSON="$ROOT/library.json"
 STEAMCMD_URL="https://steamcdn-a.akamaihd.net/client/installer/steamcmd_osx.tar.gz"
 
+NEED_GB=5
 case "$TITLE" in
+  aperture-desk-job|deskjob|aperture|1902490)
+    TITLE_ID="aperture-desk-job"
+    APP_ID="1902490"
+    EXE="Aperture Desk Job.exe"
+    NEED_GB=5
+    ;;
   apex-legends|apex|1172470)
     TITLE_ID="apex-legends"
     APP_ID="1172470"
     EXE="r5apex.exe"
+    NEED_GB=90
     ;;
   marvel-rivals|rivals|2767030)
     TITLE_ID="marvel-rivals"
     APP_ID="2767030"
     EXE="Marvel-Win64-Shipping.exe"
+    NEED_GB=90
     ;;
   *)
     echo "unknown title: $TITLE"
-    echo "usage: STEAM_USER=yourname npm run fetch -- apex-legends"
-    echo "       STEAM_USER=yourname npm run fetch -- marvel-rivals"
+    echo "usage: STEAM_USER=yourname npm run fetch -- aperture-desk-job"
+    echo "       STEAM_USER=yourname npm run fetch -- apex-legends"
     exit 2
     ;;
 esac
@@ -57,8 +66,8 @@ if [[ -z "${STEAM_USER:-}" ]]; then
 fi
 
 avail_gb=$(df -g "$ROOT" | awk 'NR==2 { print $4 }')
-if [[ -n "$avail_gb" ]] && (( avail_gb < 80 )); then
-  echo "need ~80 GB free for $TITLE_ID; this volume has ${avail_gb} GB"
+if [[ -n "$avail_gb" ]] && (( avail_gb < NEED_GB )); then
+  echo "need ~${NEED_GB} GB free for $TITLE_ID; this volume has ${avail_gb} GB"
   exit 1
 fi
 

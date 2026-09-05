@@ -144,6 +144,8 @@ struct LibraryView: View {
                         KV("anticheat", entry.profile.antiCheat.rawValue)
                         KV("stack", model.session?.stack ?? entry.profile.backend.preferred)
                         KV("ready", entry.canPlay ? "yes" : "no")
+                        KV("safe", entry.profile.settings?.isSafeBoot == true ? "yes · first boot" : "heavy")
+                        KV("disk", "\(entry.profile.settings?.requiredFreeGB ?? 80) GB budget")
 
                         installSection(entry)
 
@@ -268,7 +270,7 @@ struct LibraryView: View {
                     .frame(width: 88, height: 28)
                     .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
             }
-            Text("Windows depot via your Steam account. Password stays in memory. ~50–80 GB.")
+            Text("Install Aperture Desk Job first (~3 GB, no anti-cheat). Password stays in memory.")
                 .font(Theme.mono(10))
                 .foregroundStyle(Theme.muted)
         }

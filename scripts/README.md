@@ -14,6 +14,6 @@ npm run build
 | `scripts/run-mogged.sh` | Build, bundle, open Mogged.app |
 | `scripts/test.sh` | Runtime tests + launcher compile |
 | `scripts/bootstrap-runtime.sh` | Gcenx Wine + MoltenVK + DXVK-macOS (free). `npm run bootstrap` |
-| `scripts/fetch-windows-title.sh` | SteamCMD pulls the **Windows** depot onto this Mac. `STEAM_USER=you npm run fetch -- apex-legends` |
+| `scripts/fetch-windows-title.sh` | SteamCMD pulls the **Windows** depot. Default: Aperture Desk Job. `STEAM_USER=you npm run fetch` |
 
 Keep scripts idempotent. Do not copy eval toolkits into git.

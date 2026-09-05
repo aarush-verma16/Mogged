@@ -14,14 +14,14 @@ Must satisfy all of:
 
 ## Ladder
 
-Operator eval on this Mac (ADR-010). These **fail** criterion 1 (anti-cheat). We still launch them to see boot behavior.
+First boot on this Mac is Aperture Desk Job (ADR-012). It passes the criteria. Apex and Rivals (ADR-010) **fail** criterion 1 (anti-cheat). We still keep them pinned to see boot behavior after the stack is proven.
 
 | Stage | Title | Steam AppID | Why |
 | --- | --- | --- | --- |
-| First | **Apex Legends** | `1172470` | Founder first target. DX11, EAC. Online likely blocked. |
-| Second | **Marvel Rivals** | `2767030` | Founder second target. UE5 / DX12, ACE. Online likely blocked. |
+| First (safe) | **Aperture Desk Job** | `1902490` | Light smoke. Free, ~3 GB, no AC. ADR-012. |
+| Next | **Apex Legends** | `1172470` | Founder target. DX11, EAC. Online likely blocked. |
+| Then | **Marvel Rivals** | `2767030` | Founder target. UE5 / DX12, ACE. Online likely blocked. |
 | Later | **Marvel's Spider-Man Remastered** | `1817070` | Quality demo. No AC. Not listed until M2 / Steam has it. |
-| Not pinned | Aperture Desk Job | `1902490` | Old plumbing title. Only shows if Steam has it. |
 | Explicitly not MVP | Elden Ring, Nightreign | — | Still not MVP. |
 
 Profiles live in `/profiles`. Change first titles only with an ADR.

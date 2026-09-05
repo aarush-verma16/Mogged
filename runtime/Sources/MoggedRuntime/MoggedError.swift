@@ -32,8 +32,8 @@ public enum MoggedError: Error, Equatable {
             return "Couldn't start the game."
         case .alreadyInstalling:
             return "This game is already installing."
-        case .installFailed:
-            return "Couldn't install this game."
+        case .installFailed(let detail):
+            return detail.isEmpty ? "Couldn't install this game." : detail
         case .installNeedsAccount:
             return "Enter your Steam account to install."
         }

@@ -124,6 +124,11 @@ public actor RuntimeSupervisor {
             throw MoggedError.alreadyRunning(profile.id)
         }
 
+        if ProcessInfo.processInfo.thermalState == .critical {
+            fail(profile.id, "thermal critical")
+            throw MoggedError.launchFailed
+        }
+
         telemetry.record(TelemetryEvent(event: "launch.requested", titleId: profile.id))
 
         let override = library.overridePath(for: profile.id)

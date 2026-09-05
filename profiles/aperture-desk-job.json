@@ -2,8 +2,8 @@
   "id": "aperture-desk-job",
   "steamAppId": 1902490,
   "displayName": "Aperture Desk Job",
-  "role": "generalize",
-  "pinned": false,
+  "role": "smoke",
+  "pinned": true,
   "engine": "Source 2",
   "graphicsApi": "vulkan",
   "antiCheat": "none",
@@ -15,22 +15,29 @@
   "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
   "launch": {
     "args": [],
-    "env": {}
+    "env": {
+      "SteamDeck": "0"
+    }
   },
   "controllerRequired": true,
   "settings": {
-    "notes": "Plumbing smoke only. Vulkan/Source 2 does not prove the D3D12 path used by Spider-Man Remastered."
+    "upscaler": "native",
+    "rayTracing": "off",
+    "safeBoot": true,
+    "diskBudgetGB": 5,
+    "notes": "First safe boot. Free, ~3 GB, no anti-cheat. Proves Play. Does not prove D3D12 / Spider-Man."
   },
   "benchmark": {
     "route": "Intro through first gameplay segment",
     "durationSeconds": 60
   },
   "knownIssues": [
-    "Requires a game controller on Windows; verify our input path early.",
-    "Does not exercise D3DMetal/D3D12."
+    "Wants a controller. Boot and the first screen are enough for smoke.",
+    "Vulkan/Source 2 — not the D3D12 path."
   ],
   "research": {
     "steam": "https://store.steampowered.com/app/1902490/",
-    "why": "Old plumbing title. Not pinned."
+    "protondb": "https://www.protondb.com/app/1902490/",
+    "why": "Light plumbing smoke. Safe to Install on this Mac."
   }
 }

@@ -23,7 +23,9 @@
   "settings": {
     "upscaler": "fsr-quality",
     "rayTracing": "off",
-    "notes": "DX12 via vkd3d. FSR Quality, RT off, FPS cap from the optimization layer."
+    "safeBoot": false,
+    "diskBudgetGB": 90,
+    "notes": "Heavy. ACE. Do not Install until Aperture Desk Job has booted."
   },
   "benchmark": {
     "route": "Boot to title if anti-cheat allows",

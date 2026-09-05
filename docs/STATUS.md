@@ -13,7 +13,7 @@ Done:
 - Repo, docs, rules, profiles.
 - Desktop-app identity (ADR-006).
 - `dev` / `main` workflow.
-- Native SwiftUI **operator** console: Install (Steam Windows depot + live %), Play, Stop, Locate, Wine, prefix, PID, env, logs, optimization. Apex then Rivals pinned.
+- Native SwiftUI **operator** console: Install, Play, Stop, Locate, live %, logs, optimization. First title = Aperture Desk Job. Apex and Rivals stay pinned and heavy.
 - Runtime tests cover profile decode, user-facing copy, install lookup, launch/stop through a fake Wine, and thermal FPS caps.
 - `RuntimeSupervisor.launch` creates a per-title environment, execs Wine, tracks PID, writes JSONL, Stop kills the process.
 - Optimization layer: thermal → FPS cap (60/40/30), FSR Quality, RT off (ADR-011). v1 is **this Mac**.
@@ -21,7 +21,7 @@ Done:
 
 Not done:
 
-- No Apex / Rivals files on disk yet. **Install is in the app:** Steam user + password + Guard → Install. Progress and `install-*.log` stream in the operator console. Terminal `npm run fetch` still works.
+- No game files on disk yet. Install Aperture Desk Job first (~3 GB). Apex / Rivals stay listed but are heavy.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
 - No game has drawn pixels. No FPS number. Do not claim smoothness.
@@ -54,8 +54,9 @@ macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. E
 
 | ID | Topic | State |
 | --- | --- | --- |
+| ADR-012 | First boot = Aperture Desk Job (safe, ~3 GB) | accepted |
 | ADR-011 | v1 on this Mac; optimization layer is ours | accepted |
-| ADR-010 | First titles = Apex + Rivals (AC expected to block online) | accepted |
+| ADR-010 | Founder targets = Apex + Rivals (AC expected to block online) | accepted |
 | ADR-009 | Operator UI shows the stack | accepted |
 | ADR-008 | Library = local Steam, Mogged UI | accepted |
 | ADR-007 | `dev` vs `main` | accepted |
@@ -67,15 +68,20 @@ macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. E
 | ADR-001 | Monorepo | accepted |
 | ADR-000 | Do not write a Windows/DX translator | accepted |
 | Decision 1 | Wine + DXVK/vkd3d + MoltenVK | **accepted** |
-| Smoke title | Apex Legends, then Marvel Rivals | **operator eval; AC will likely block matches** |
+| Smoke title | Aperture Desk Job, then Apex, then Rivals | **safe boot first (ADR-012)** |
 
 ## Titles
 
 | Role | Title | State |
 | --- | --- | --- |
-| First | Apex Legends (`1172470`) | pinned; not on disk |
-| Second | Marvel Rivals (`2767030`) | pinned; not on disk |
+| First (safe) | Aperture Desk Job (`1902490`) | **smoke**; ~3 GB; no AC; not on disk |
+| Next | Apex Legends (`1172470`) | pinned; heavy; not on disk |
+| Then | Marvel Rivals (`2767030`) | pinned; heavy; not on disk |
 | Later | Spider-Man Remastered (`1817070`) | profile exists; **not in the library until M2 / Steam has it** |
+
+## Safety (this Mac)
+
+Install writes only under `~/Library/Application Support/Mogged/games/<id>/`. No admin, no kernel extension, no SIP off. FPS caps if the chassis gets hot. Install refuses if the Mac is critically hot or free space is below the title budget (Desk Job = 5 GB). Apex / Rivals are 90 GB budgets on purpose. Stop kills the process. This cannot brick the Mac. A crash is a log line, not a hardware event.
 
 ## Benchmarks
 
@@ -83,6 +89,6 @@ None. Do not claim performance. Native 4K + ray tracing + uncapped FPS will cook
 
 ## Next
 
-1. Open Mogged. Select Apex. Enter Steam user / password / Guard if asked. Click **Install**. Watch % and the install log.
-2. When ready is yes, **Play**. Watch operator `opt` and the title log.
-3. Record boot vs anti-cheat death. Then vkd3d-proton for Rivals.
+1. Open Mogged. **Aperture Desk Job** is first. Steam user / password / Guard → **Install** (~3 GB).
+2. **Play**. This is the safe stack proof. Then Apex / Rivals.
+3. Record what booted. Do not Install Apex until Desk Job has shown a window.

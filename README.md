@@ -32,7 +32,7 @@ Also: [docs/VISION.md](docs/VISION.md), [docs/GAMES.md](docs/GAMES.md), [docs/BR
 git checkout dev
 npm test
 npm run bootstrap   # Gcenx Wine + MoltenVK + DXVK-macOS, once
-STEAM_USER=you npm run fetch -- apex-legends   # Windows Apex files via SteamCMD (not the Mac Steam app)
+STEAM_USER=you npm run fetch -- aperture-desk-job   # light Windows game first (~3 GB)
 npm start
 ```
 

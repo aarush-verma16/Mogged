@@ -56,7 +56,9 @@
         "upscaler": { "type": "string" },
         "rayTracing": { "type": "string" },
         "dlss": { "type": "string" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "safeBoot": { "type": "boolean" },
+        "diskBudgetGB": { "type": "integer" }
       }
     },
     "benchmark": {

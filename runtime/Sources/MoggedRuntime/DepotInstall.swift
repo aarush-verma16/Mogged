@@ -160,9 +160,20 @@ public final class DepotInstaller: @unchecked Sendable {
         if isRunning {
             throw MoggedError.alreadyInstalling(profile.id)
         }
+        if ProcessInfo.processInfo.thermalState == .critical {
+            throw MoggedError.installFailed("This Mac is too hot. Let it cool, then Install.")
+        }
 
         try paths.ensure()
         let dest = paths.games.appendingPathComponent(profile.id, isDirectory: true)
+        let gamesRoot = paths.games.standardizedFileURL.path
+        guard dest.standardizedFileURL.path.hasPrefix(gamesRoot) else {
+            throw MoggedError.installFailed("Install path rejected.")
+        }
+        let need = profile.settings?.requiredFreeGB ?? 80
+        if let free = Self.freeGigabytes(at: dest), free < need {
+            throw MoggedError.installFailed("Need \(need) GB free. This volume has \(free) GB.")
+        }
         try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: true)
 
         let script = steamcmdScript
@@ -176,7 +187,7 @@ public final class DepotInstaller: @unchecked Sendable {
             executable = binary
             arguments = []
         } else {
-            throw MoggedError.installFailed("steamcmd missing — run bootstrap/fetch once, or Install again")
+            throw MoggedError.installFailed("Installer missing. Click Install again.")
         }
 
         arguments += [
@@ -314,5 +325,13 @@ public final class DepotInstaller: @unchecked Sendable {
         lock.lock()
         body(&snapshot)
         lock.unlock()
+    }
+
+    static func freeGigabytes(at url: URL) -> Int? {
+        let keys: Set<URLResourceKey> = [.volumeAvailableCapacityForImportantUsageKey]
+        guard let values = try? url.resourceValues(forKeys: keys),
+              let bytes = values.volumeAvailableCapacityForImportantUsage
+        else { return nil }
+        return Int(bytes / 1_000_000_000)
     }
 }

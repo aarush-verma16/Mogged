@@ -23,7 +23,7 @@ func libraryWithoutSteamShowsSmokeOnly() async throws {
     let supervisor = RuntimeSupervisor(catalog: SteamCatalog(root: missing, running: false))
     let profiles = try ProfileLoader.load()
     let entries = await supervisor.libraryEntries(profiles: profiles)
-    #expect(entries.map(\.id) == ["apex-legends", "marvel-rivals"])
+    #expect(entries.map(\.id) == ["aperture-desk-job", "apex-legends", "marvel-rivals"])
     #expect(!entries.contains { $0.profile.role == .primaryDemo })
 }
 
@@ -61,9 +61,9 @@ func libraryOverlaysSmokeProfileOnSteamApp() async throws {
     let entries = await supervisor.libraryEntries(profiles: try ProfileLoader.load())
     let desk = try #require(entries.first { $0.profile.steamAppId == 1_172_470 })
     #expect(desk.id == "apex-legends")
-    #expect(desk.profile.role == .smoke)
+    #expect(desk.profile.role == .generalize)
     #expect(desk.canPlay)
-    #expect(entries.first?.id == "apex-legends")
+    #expect(entries.first?.id == "aperture-desk-job")
     #expect(entries.map(\.id).contains("marvel-rivals"))
     #expect(!entries.contains { $0.profile.role == .primaryDemo })
 }

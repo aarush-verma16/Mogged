@@ -19,4 +19,4 @@ description: Creates or updates a Mogged per-title JSON profile. Use when adding
 
 `smoke` | `primary-demo` | `generalize` | `catalog`
 
-Apex Legends is `smoke`. Marvel Rivals is pinned `generalize`. Spider-Man Remastered stays `primary-demo`. Do not add Elden Ring without explicitly moving it out of "not MVP."
+Aperture Desk Job is `smoke` (ADR-012). Apex and Rivals are pinned `generalize`. Spider-Man Remastered stays `primary-demo`. Do not add Elden Ring without explicitly moving it out of "not MVP."

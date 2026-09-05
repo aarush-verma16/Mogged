@@ -19,12 +19,12 @@ Update `/docs/STATUS.md`:
 
 | Backend | Title | Booted | Manual steps | Notes |
 | --- | --- | --- | --- | --- |
-| wine + dxvk | apex-legends | | | |
+| wine + moltenvk | aperture-desk-job | | | |
 
 Decision 1 is already accepted (OSS Wine stack). Do not reopen it to add paid software.
 
 ## Hard rules
 
-- Smoke title first. Not Spider-Man.
+- Smoke title first (Aperture Desk Job). Not Apex. Not Spider-Man.
 - Record Wine version and what broke.
 - A Wine boot is evidence the hidden runtime works, not permission to show Wine in the UI.

@@ -23,12 +23,12 @@ Track progress in [STATUS.md](STATUS.md). When a milestone completes, check it o
 - [x] Native Mac app identity is the product (not a compatibility GUI). Locked in ADRs.
 - [x] Apple Silicon Mac recorded in STATUS (`sw_vers`, chip).
 - [x] Wine (free, LGPL) runs a Windows `.exe` on this Mac — Gcenx Staging 11.16 ran `cmd.exe` (`mogged-ok`). Homebrew wine casks are Gatekeeper-disabled.
-- [ ] DXVK + MoltenVK path tested: Apex Legends or Marvel Rivals reaches pixels (anti-cheat may stop this).
+- [ ] MoltenVK path tested: Aperture Desk Job reaches pixels (safe smoke, ADR-012).
 - [ ] Notes in STATUS: Wine version, DXVK version, what ran, what broke.
 - [ ] No paid software used at any point. No CrossOver. No GPTK.
-- [ ] Smoke title confirmed or swapped using [GAMES.md](GAMES.md).
+- [x] Smoke title confirmed: Aperture Desk Job (ADR-012).
 
-**Work:** `npm run bootstrap` (Gcenx Wine + MoltenVK + DXVK-macOS). Run Apex or Rivals. Record what worked. Optimization layer (FPS cap / FSR / RT off) is already in `runtime/`.
+**Work:** Install Aperture Desk Job from the app. Play. Record what worked. Apex/Rivals come after. Optimization layer (FPS cap / FSR / RT off) is already in `runtime/`.
 
 **Not this milestone:** FPS targets, Spider-Man, UI polish, shipping to anyone.
 
