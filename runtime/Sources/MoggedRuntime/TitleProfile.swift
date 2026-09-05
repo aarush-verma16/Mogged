@@ -53,9 +53,12 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
         public let notes: String?
         public let safeBoot: Bool?
         public let diskBudgetGB: Int?
+        /// Title calls SteamAPI_Init / Steam Input, so Steam must run beside it.
+        public let steamClient: Bool?
 
         public var isSafeBoot: Bool { safeBoot == true }
         public var requiredFreeGB: Int { diskBudgetGB ?? 80 }
+        public var needsSteamClient: Bool { steamClient == true }
     }
 
     public struct Benchmark: Codable, Sendable, Equatable {

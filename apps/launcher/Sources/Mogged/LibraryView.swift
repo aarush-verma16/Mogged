@@ -163,6 +163,7 @@ struct LibraryView: View {
                         KV("stack", model.session?.stack ?? entry.profile.backend.preferred)
                         KV("ready", entry.canPlay ? "yes" : "no")
                         KV("safe", entry.profile.settings?.isSafeBoot == true ? "yes · first boot" : "heavy")
+                        KV("steaminput", steamInputLabel(entry))
                         KV("disk", "\(entry.profile.settings?.requiredFreeGB ?? 80) GB budget")
 
                         installSection(entry)
@@ -328,6 +329,11 @@ struct LibraryView: View {
         .onChange(of: model.steamGuard) { _, _ in model.saveCredentials() }
     }
 
+    private func steamInputLabel(_ entry: LibraryEntry) -> String {
+        guard entry.profile.settings?.needsSteamClient == true else { return "not needed" }
+        return model.steamServicesReady ? "ready" : "needs Steam · Add Steam"
+    }
+
     private var showCodeField: Bool {
         !model.steamGuard.isEmpty
             || model.install?.phase == "Guard"
@@ -388,6 +394,11 @@ struct LibraryView: View {
         } else {
             Button("Locate") { Task { await model.locate(entry) } }
                 .buttonStyle(VercelButtonStyle(kind: .secondary))
+            if entry.profile.settings?.needsSteamClient == true, !model.steamServicesReady {
+                Button(model.isBusy ? "…" : "Add Steam") { Task { await model.addSteamServices(entry) } }
+                    .buttonStyle(VercelButtonStyle(kind: .secondary, disabled: model.isBusy))
+                    .disabled(model.isBusy)
+            }
             if entry.canPlay {
                 Button(model.isBusy ? "…" : "Play") { Task { await model.play(entry) } }
                     .buttonStyle(VercelButtonStyle(kind: .primary, disabled: model.isBusy))

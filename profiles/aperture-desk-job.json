@@ -14,7 +14,7 @@
   },
   "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
   "launch": {
-    "args": ["-game", "steampal", "-novr"],
+    "args": ["-game", "steampal", "-novr", "-hushsteam"],
     "workingDirectory": "game",
     "env": {
       "SteamDeck": "0",
@@ -28,6 +28,7 @@
     "rayTracing": "off",
     "safeBoot": true,
     "diskBudgetGB": 5,
+    "steamClient": true,
     "notes": "First safe boot. Free, ~3 GB, no anti-cheat. Proves Play. Does not prove D3D12 / Spider-Man."
   },
   "benchmark": {

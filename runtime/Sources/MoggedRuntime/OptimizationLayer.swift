@@ -65,6 +65,10 @@ public struct OptimizationLayer: Sendable {
         env["MVK_CONFIG_RESUME_LOST_DEVICE"] = "1"
         env["MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS"] = "1"
         env["MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS"] = "0"
+        // Source 2 blows past preallocated pools. Allocate on demand instead of
+        // logging a warning per descriptor (1.5M lines in one 47s boot).
+        env["MVK_CONFIG_PREALLOCATE_DESCRIPTORS"] = "0"
+        env["MVK_CONFIG_LOG_LEVEL"] = "1"
         env["VKD3D_FEATURE_LEVEL"] = "12_0"
         env["MOGGED_UPSCALER"] = policy.upscaler
         env["MOGGED_RT"] = policy.rayTracing

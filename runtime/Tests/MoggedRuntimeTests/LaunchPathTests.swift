@@ -55,6 +55,46 @@ struct LaunchPathTests {
     }
 
     @Test
+    func deskJobWantsSteamClientAndQuietDriverLogs() throws {
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        #expect(profile.settings?.needsSteamClient == true)
+
+        var env: [String: String] = [:]
+        OptimizationLayer().apply(OptimizationLayer().policy(for: profile, thermal: .nominal), into: &env)
+        #expect(env["MVK_CONFIG_PREALLOCATE_DESCRIPTORS"] == "0")
+        #expect(env["MVK_CONFIG_LOG_LEVEL"] == "1")
+
+        let apex = try smokeProfile()
+        #expect(apex.settings?.needsSteamClient == false)
+    }
+
+    @Test
+    func findsSteamClientInsidePrefix() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let prefix = home.appendingPathComponent("prefix")
+        #expect(SteamServices.clientExe(prefix: prefix) == nil)
+
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir, withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        #expect(SteamServices.clientExe(prefix: prefix)?.lastPathComponent == "steam.exe")
+    }
+
+    @Test
+    func trimsRunawayDriverLog() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let log = home.appendingPathComponent("game.log")
+        let big = Data(repeating: 0x41, count: ProcessHandle.logByteLimit + 4096)
+        try big.write(to: log)
+
+        ProcessHandle.trimLog(at: log)
+        let size = (try FileManager.default.attributesOfItem(atPath: log.path)[.size]) as? Int
+        #expect((size ?? .max) <= ProcessHandle.logByteLimit)
+    }
+
+    @Test
     func moltenVkUsesJsonICDNotDylib() throws {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }

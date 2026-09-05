@@ -6,6 +6,13 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-013 — Steam runs inside the title environment when a game needs SteamAPI
+
+- **Status:** accepted
+- **Decision:** Titles that call `SteamAPI_Init` / Steam Input get a **Steam client inside their own environment**, started silently beside the game. Opt in per title with `settings.steamClient` in `profiles/*.json`; the runtime (`SteamServices`) downloads the free Steam installer once, installs it silently, and starts it with `-silent`. Games that do not need it never get it. This is not a store or a library sync — Mogged still owns Play, and the catalog stays ADR-008.
+- **Why:** Aperture Desk Job boots but reports “Unable to initialize Steam Input.” SteamCMD only fetches depots; Steam Input needs a signed-in Steam client in the same environment. Without this, controller input is dead for every Steam-published title, including Apex and Rivals.
+- **Cost:** The user signs in to Steam once, in Steam's own window, inside that environment.
+
 ## ADR-012 — First boot is Aperture Desk Job
 
 - **Status:** accepted

@@ -62,7 +62,11 @@
         "dlss": { "type": "string" },
         "notes": { "type": "string" },
         "safeBoot": { "type": "boolean" },
-        "diskBudgetGB": { "type": "integer" }
+        "diskBudgetGB": { "type": "integer" },
+        "steamClient": {
+          "type": "boolean",
+          "description": "Title calls SteamAPI_Init / Steam Input, so Steam must run beside it"
+        }
       }
     },
     "benchmark": {

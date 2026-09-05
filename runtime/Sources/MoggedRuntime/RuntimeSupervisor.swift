@@ -26,9 +26,11 @@ public actor RuntimeSupervisor {
     private let launcher: BackendLauncher
     private let catalog: SteamCatalog
     private let installer: DepotInstaller
+    private let services: SteamServices
     private var running: [String: ProcessHandle] = [:]
     private var lastPlan: [String: LaunchPlan] = [:]
     private var lastExit: [String: Int32] = [:]
+    private var steamClient: ProcessHandle?
 
     public init(
         locator: InstallLocator? = nil,
@@ -39,7 +41,8 @@ public actor RuntimeSupervisor {
         environment: WineEnvironment = WineEnvironment(),
         launcher: BackendLauncher = BackendLauncher(),
         catalog: SteamCatalog = SteamCatalog(),
-        installer: DepotInstaller = DepotInstaller()
+        installer: DepotInstaller = DepotInstaller(),
+        services: SteamServices = SteamServices()
     ) {
         self.catalog = catalog
         self.locator = locator ?? InstallLocator(catalog: catalog)
@@ -50,6 +53,7 @@ public actor RuntimeSupervisor {
         self.environment = environment
         self.launcher = launcher
         self.installer = installer
+        self.services = services
     }
 
     public func steamSnapshot() -> SteamSnapshot {
@@ -168,6 +172,7 @@ public actor RuntimeSupervisor {
         }
 
         preparePrefix(prefix: trees.prefix, profile: profile, config: config)
+        startSteamServicesIfNeeded(profile: profile, prefix: trees.prefix, config: config)
 
         BackendLauncher.ensureSteamInf(installRoot: install.path, profile: profile)
         let plan = launcher.plan(
@@ -221,6 +226,62 @@ public actor RuntimeSupervisor {
             return true
         }
         return probe.isAvailable
+    }
+
+    /// Steam Input and SteamAPI_Init only work with Steam running in the same prefix.
+    private func startSteamServicesIfNeeded(profile: TitleProfile, prefix: URL, config: BackendConfig) {
+        guard profile.settings?.needsSteamClient == true else { return }
+        if steamClient?.isRunning == true { return }
+
+        guard let exe = SteamServices.clientExe(prefix: prefix) else {
+            telemetry.record(
+                TelemetryEvent(
+                    event: "steam.services.missing",
+                    titleId: profile.id,
+                    detail: "Steam Input needs Steam installed for this game. Click Add Steam."
+                )
+            )
+            return
+        }
+
+        do {
+            steamClient = try services.start(prefix: prefix, config: config, exe: exe)
+            telemetry.record(TelemetryEvent(event: "steam.services.started", titleId: profile.id))
+            Thread.sleep(forTimeInterval: 3)
+        } catch {
+            telemetry.record(
+                TelemetryEvent(
+                    event: "steam.services.failed",
+                    titleId: profile.id,
+                    detail: "Steam Input unavailable."
+                )
+            )
+        }
+    }
+
+    /// One-time: put Steam in this title's environment so Steam Input works.
+    public func addSteamServices(profile: TitleProfile) async throws {
+        let config = try configStore.resolve(discover: { probe.wineBinary() })
+        let trees = try environment.ensure(for: profile.id)
+        preparePrefix(prefix: trees.prefix, profile: profile, config: config)
+
+        if SteamServices.clientExe(prefix: trees.prefix) != nil {
+            telemetry.record(TelemetryEvent(event: "steam.services.present", titleId: profile.id))
+            return
+        }
+
+        telemetry.record(TelemetryEvent(event: "steam.services.install", titleId: profile.id))
+        let installer = try await services.downloadInstaller()
+        try services.install(prefix: trees.prefix, config: config, installer: installer)
+
+        guard SteamServices.clientExe(prefix: trees.prefix) != nil else {
+            throw MoggedError.installFailed("Couldn't add Steam for this game.")
+        }
+        telemetry.record(TelemetryEvent(event: "steam.services.added", titleId: profile.id))
+    }
+
+    public func steamServicesReady(profile: TitleProfile) -> Bool {
+        SteamServices.clientExe(prefix: environment.prefixURL(for: profile.id)) != nil
     }
 
     private func preparePrefix(prefix: URL, profile: TitleProfile, config: BackendConfig) {

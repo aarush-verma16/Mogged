@@ -48,7 +48,7 @@ public struct BackendLauncher: Sendable {
             "DXVK_STATE_CACHE": "1",
             "DXVK_STATE_CACHE_PATH": cache.path,
             "DXVK_LOG_PATH": paths.logs.path,
-            "DXVK_LOG_LEVEL": "info",
+            "DXVK_LOG_LEVEL": "warn",
             "SteamAppId": "\(profile.steamAppId)",
             "SteamGameId": "\(profile.steamAppId)",
         ]

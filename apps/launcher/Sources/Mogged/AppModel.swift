@@ -27,6 +27,7 @@ final class AppModel {
     var steamPassword = ""
     var steamGuard = ""
     var credentialsSaved = false
+    var steamServicesReady = false
 
     enum LogTab: String, CaseIterable, Identifiable {
         case errors
@@ -85,6 +86,7 @@ final class AppModel {
             if let entry = selected {
                 session = await supervisor.inspectSession(profile: entry.profile, install: entry.install)
                 gameLog = await supervisor.gameLogTail(titleId: entry.id)
+                steamServicesReady = await supervisor.steamServicesReady(profile: entry.profile)
             }
             runtimeLog = await supervisor.telemetryTail()
             install = await supervisor.inspectInstall()
@@ -187,6 +189,25 @@ final class AppModel {
         } catch let error as MoggedError {
             rememberError(error.userMessage)
             await refresh()
+        } catch {
+            rememberError(String(describing: error))
+        }
+    }
+
+    func addSteamServices(_ entry: LibraryEntry) async {
+        banner = nil
+        lastError = nil
+        bannerIsError = true
+        isBusy = true
+        defer { isBusy = false }
+        rememberNotice("Adding Steam for \(entry.profile.displayName). Sign in once when it opens.")
+        do {
+            try await supervisor.addSteamServices(profile: entry.profile)
+            steamServicesReady = await supervisor.steamServicesReady(profile: entry.profile)
+            rememberNotice("Steam added. Click Play, sign in, then Steam Input works.")
+            await refresh()
+        } catch let error as MoggedError {
+            rememberError(error.userMessage)
         } catch {
             rememberError(String(describing: error))
         }

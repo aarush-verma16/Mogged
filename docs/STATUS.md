@@ -1,6 +1,6 @@
 # Status
 
-Living snapshot. Last updated: 2026-09-03. If this disagrees with code, fix this file in the same change.
+Living snapshot. Last updated: 2026-09-05. If this disagrees with code, fix this file in the same change.
 
 Plan: [MILESTONES.md](MILESTONES.md). Build: [BUILD.md](BUILD.md). Branches: [BRANCHING.md](BRANCHING.md).
 
@@ -18,13 +18,14 @@ Done:
 - `RuntimeSupervisor.launch` creates a per-title environment, execs Wine, tracks PID, writes JSONL, Stop kills the process.
 - Optimization layer: thermal → FPS cap (60/40/30), FSR Quality, RT off (ADR-011). v1 is **this Mac**.
 - Translation engine is on disk and probed: Gcenx Wine Staging **11.16** ran `cmd.exe` (`mogged-ok`). MoltenVK sees **Apple M4 Pro**. DXVK-macOS `d3d11.dll` + `d3d10core.dll` in `third_party/dxvk/x64`.
+- **Aperture Desk Job boots and draws.** 2026-09-05: `launch.exited code=0` after ~47s. DXVK 1.10.3 created a D3D11 device on M4 Pro; MoltenVK made a 1800×1169 `CAMetalLayer` swapchain. Path to that: DXVK staged in `engine/dxvk` and copied into the prefix, `game` as working directory with `-game steampal`, generated `steam.inf`, and Wine’s MoltenVK **JSON ICD** (a raw dylib in `VK_ICD_FILENAMES` lost `VK_KHR_surface` → exit 5).
 
 Not done:
 
-- Aperture Desk Job is on disk. DXVK loads; last crash was `VK_KHR_surface` because ICD was a raw dylib. Launch now uses Wine’s MoltenVK JSON ICD and `-novr`. Apex / Rivals stay listed but are heavy.
+- **Steam Input is not initialized.** Desk Job calls `SteamAPI_Init`; SteamCMD only fetches files, so no Steam runs in the prefix. Runtime now has `SteamServices` + an **Add Steam** action (ADR-013). Not yet exercised end to end.
+- No FPS number yet. Booting is not the quality bar; do not claim smoothness.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
-- No game has drawn pixels. No FPS number. Do not claim smoothness.
 
 ## Hardware
 
@@ -54,6 +55,7 @@ macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. E
 
 | ID | Topic | State |
 | --- | --- | --- |
+| ADR-013 | Steam runs in the title environment for SteamAPI / Steam Input | accepted |
 | ADR-012 | First boot = Aperture Desk Job (safe, ~3 GB) | accepted |
 | ADR-011 | v1 on this Mac; optimization layer is ours | accepted |
 | ADR-010 | Founder targets = Apex + Rivals (AC expected to block online) | accepted |
@@ -74,7 +76,7 @@ macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. E
 
 | Role | Title | State |
 | --- | --- | --- |
-| First (safe) | Aperture Desk Job (`1902490`) | **smoke**; installed; Play boot in progress |
+| First (safe) | Aperture Desk Job (`1902490`) | **smoke**; installed; **boots and draws**; Steam Input pending |
 | Next | Apex Legends (`1172470`) | pinned; heavy; not on disk |
 | Then | Marvel Rivals (`2767030`) | pinned; heavy; not on disk |
 | Later | Spider-Man Remastered (`1817070`) | profile exists; **not in the library until M2 / Steam has it** |
