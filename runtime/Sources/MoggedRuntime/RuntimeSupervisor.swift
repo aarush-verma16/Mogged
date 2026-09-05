@@ -288,7 +288,8 @@ public actor RuntimeSupervisor {
     private func startSteamServices(
         profile: TitleProfile,
         prefix: URL,
-        config: BackendConfig
+        config: BackendConfig,
+        forceRetry: Bool = false
     ) -> SteamServicesState {
         if SteamServices.isSignedIn(prefix: prefix) { return .ready }
 
@@ -308,7 +309,12 @@ public actor RuntimeSupervisor {
             steamClient?.terminate()
             steamClient = nil
             SteamServices.killOrphanedClient(prefix: prefix)
-            guard !credentials.guardCode.isEmpty else {
+            // Once denied, a plain Play click never spawns Steam again without a
+            // code already in hand — otherwise it would silently stop asking Valve
+            // for a fresh device check, and a lost or expired first email would be
+            // a dead end forever. `forceRetry` (the explicit "try again" action) is
+            // the only way past this short-circuit.
+            guard !credentials.guardCode.isEmpty || forceRetry else {
                 telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
                 return .needsGuardCode
             }
@@ -338,12 +344,20 @@ public actor RuntimeSupervisor {
 
     /// Called by Play before launching: brings Steam up and reports sign-in state so
     /// the app can show progress while Steam works.
-    public func prepareSteamServices(profile: TitleProfile) throws -> SteamServicesState {
+    public func prepareSteamServices(profile: TitleProfile, forceRetry: Bool = false) throws -> SteamServicesState {
         guard profile.settings?.needsSteamClient == true else { return .ready }
         let config = try configStore.resolve(discover: { probe.wineBinary() })
         let trees = try environment.ensure(for: profile.id)
         preparePrefix(prefix: trees.prefix, profile: profile, config: config)
-        return startSteamServices(profile: profile, prefix: trees.prefix, config: config)
+        return startSteamServices(profile: profile, prefix: trees.prefix, config: config, forceRetry: forceRetry)
+    }
+
+    /// Explicit "try again" for Play sign-in: unlike a plain Play click, this asks
+    /// Steam again even though the last attempt was denied, so a lost, expired, or
+    /// missed device-approval email gets a real second chance instead of Mogged
+    /// quietly refusing to ever retry again.
+    public func retryPlaySignIn(profile: TitleProfile) throws -> SteamServicesState {
+        try prepareSteamServices(profile: profile, forceRetry: true)
     }
 
     public func steamSignedIn(profile: TitleProfile) -> Bool {

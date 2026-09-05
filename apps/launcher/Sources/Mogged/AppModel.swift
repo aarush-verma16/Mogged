@@ -153,7 +153,42 @@ final class AppModel {
     /// "Unable to initialize Steam Input". Signing in takes a few seconds.
     private func waitForSteam(_ entry: LibraryEntry) async -> Bool {
         guard entry.profile.settings?.needsSteamClient == true else { return true }
+        do {
+            let first = try await supervisor.prepareSteamServices(profile: entry.profile)
+            return await pollSteam(entry, first: first)
+        } catch let error as MoggedError {
+            rememberError(error.userMessage)
+            return false
+        } catch {
+            rememberError(String(describing: error))
+            return false
+        }
+    }
 
+    /// "Try Play sign-in again": a plain Play click never re-asks Steam once denied
+    /// (see `RuntimeSupervisor.startSteamServices`), so this is the only way to give
+    /// Valve a real second chance if the first device-approval email or Steam Mobile
+    /// prompt was missed, went to spam, or expired.
+    func retryPlaySignIn(_ entry: LibraryEntry) async {
+        guard entry.profile.settings?.needsSteamClient == true else { return }
+        banner = nil
+        isBusy = true
+        defer { isBusy = false }
+        rememberNotice(
+            "Asking Steam to check this Mac again for \(entry.profile.displayName). "
+                + "Watch your email and the Steam Mobile app for the next couple of minutes."
+        )
+        do {
+            let first = try await supervisor.retryPlaySignIn(profile: entry.profile)
+            _ = await pollSteam(entry, first: first)
+        } catch let error as MoggedError {
+            rememberError(error.userMessage)
+        } catch {
+            rememberError(String(describing: error))
+        }
+    }
+
+    private func pollSteam(_ entry: LibraryEntry, first: SteamServicesState) async -> Bool {
         func handle(_ state: SteamServicesState) -> Bool? {
             switch state {
             case .ready:
@@ -174,17 +209,7 @@ final class AppModel {
             }
         }
 
-        do {
-            if let done = handle(try await supervisor.prepareSteamServices(profile: entry.profile)) {
-                return done
-            }
-        } catch let error as MoggedError {
-            rememberError(error.userMessage)
-            return false
-        } catch {
-            rememberError(String(describing: error))
-            return false
-        }
+        if let done = handle(first) { return done }
 
         rememberNotice("Signing in to Steam for \(entry.profile.displayName)…")
         for _ in 0..<Self.steamSignInPolls {

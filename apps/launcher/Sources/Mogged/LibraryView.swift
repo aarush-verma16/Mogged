@@ -151,6 +151,9 @@ struct LibraryView: View {
                 }
 
                 accountBar
+                if entry.profile.settings?.needsSteamClient == true {
+                    playSignInBar(entry)
+                }
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Space.x1) {
@@ -300,7 +303,7 @@ struct LibraryView: View {
                 accountField("password", text: $model.steamPassword, secure: true)
             }
             HStack(spacing: Theme.Space.x2) {
-                Button(gettingCode ? "Getting code…" : "Get code") {
+                Button(gettingCode ? "Getting Install code…" : "Get Install code") {
                     Task { await model.requestGuard() }
                 }
                 .buttonStyle(VercelButtonStyle(kind: .secondary, disabled: blocked))
@@ -330,6 +333,39 @@ struct LibraryView: View {
         .onChange(of: model.steamGuard) { _, _ in model.saveCredentials() }
     }
 
+    /// Separate from Install sign-in on purpose: they are two different Steam
+    /// devices (this Mac vs. the emulated Windows machine the game runs in), so
+    /// "Get code" above testing the former never reflects this one's real state.
+    @ViewBuilder
+    private func playSignInBar(_ entry: LibraryEntry) -> some View {
+        let retrying = model.isBusy
+        VStack(alignment: .leading, spacing: Theme.Space.x1) {
+            HStack(spacing: Theme.Space.x2) {
+                Text("play sign-in")
+                    .font(Theme.mono(10, weight: .medium))
+                    .foregroundStyle(Theme.muted)
+                Text(steamInputLabel(entry))
+                    .font(Theme.mono(10))
+                    .foregroundStyle(model.steamSignedIn ? Theme.success : (model.steamNeedsGuardCode ? Theme.error : Theme.muted))
+                Spacer()
+                if model.steamNeedsGuardCode {
+                    Button(retrying ? "Asking Steam…" : "Try again") {
+                        Task { await model.retryPlaySignIn(entry) }
+                    }
+                    .buttonStyle(VercelButtonStyle(kind: .secondary, disabled: retrying))
+                    .disabled(retrying)
+                }
+            }
+            if model.steamNeedsGuardCode {
+                Text("This is a different device check than Install's code above — Steam sees this game's Windows environment as a separate machine. Press \"Try again\", then watch email and the Steam Mobile app for a couple of minutes. Paste whatever code arrives above, then press Play.")
+                    .font(Theme.mono(10))
+                    .foregroundStyle(Theme.muted)
+            }
+        }
+        .padding(.horizontal, Theme.Space.x3)
+        .padding(.bottom, Theme.Space.x2)
+    }
+
     private func windowLabel(_ entry: LibraryEntry) -> String {
         let window = entry.profile.launch?.window
         guard window?.isWindowed ?? true else { return "fullscreen" }
@@ -339,6 +375,7 @@ struct LibraryView: View {
     private func steamInputLabel(_ entry: LibraryEntry) -> String {
         guard entry.profile.settings?.needsSteamClient == true else { return "not needed" }
         if !model.steamServicesReady { return "needs Steam · Add Steam" }
+        if model.steamNeedsGuardCode { return "needs a code · see below" }
         return model.steamSignedIn ? "ready · signed in" : "signs in on Play"
     }
 
@@ -351,11 +388,11 @@ struct LibraryView: View {
 
     private var accountHint: String {
         if model.steamNeedsGuardCode {
-            return "Steam needs a new code for this Mac. Check email or Steam Mobile, paste it, then press Play."
+            return "Whichever code arrives, paste it here — it's shared with Install."
         }
         if !model.bannerIsError, model.banner != nil { return "Paste the code, then Install. It's saved on this Mac." }
         if !model.steamGuard.isEmpty { return "Code is saved. Change it only if Steam asks again." }
-        return "Account name, not email. Get code, paste it, then Install."
+        return "Account name, not email. Get Install code, paste it, then Install."
     }
 
     private func accountField(_ placeholder: String, text: Binding<String>, secure: Bool = false) -> some View {

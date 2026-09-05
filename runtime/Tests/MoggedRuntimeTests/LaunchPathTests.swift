@@ -244,6 +244,34 @@ struct LaunchPathTests {
     }
 
     @Test
+    func retryPlaySignInAsksAgainEvenWithoutANewCode() async throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let (supervisor, paths) = try makeSupervisor(home: home, wine: nil)
+        let wine = try writeFakeSteamClientWine(in: home)
+        try BackendConfigStore(paths: paths).save(BackendConfig(wine: wine.path))
+
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        let prefix = WineEnvironment(paths: paths).prefixURL(for: profile.id)
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir, withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "", paths: paths)
+
+        _ = try await supervisor.prepareSteamServices(profile: profile)
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
+
+        // A plain Play click (pollSteamLogin) never asks Steam again while the code
+        // field stays empty — that is the bug the user hit. retryPlaySignIn must ask
+        // regardless, so a lost or expired first email gets a real second attempt.
+        #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
+
+        let retried = try await supervisor.retryPlaySignIn(profile: profile)
+        #expect(retried == .signingIn)
+    }
+
+    @Test
     func bootstrapKillsALoginDeniedFromAPreviousSession() async throws {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
