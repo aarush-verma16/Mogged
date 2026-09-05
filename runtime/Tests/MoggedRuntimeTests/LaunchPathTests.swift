@@ -147,6 +147,38 @@ struct LaunchPathTests {
     }
 
     @Test
+    func needsGuardCodeReadsTheClientsOwnLoginDenial() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let prefix = home.appendingPathComponent("prefix")
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir.appendingPathComponent("logs"), withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        let console = steamDir.appendingPathComponent("logs/console_log.txt")
+
+        // No client log yet.
+        #expect(!SteamServices.needsGuardCode(prefix: prefix))
+
+        // SteamCMD's device trust does not carry over: the client's first -login
+        // on a fresh prefix is denied and wants its own one-time code.
+        try """
+        [2026-09-05 15:52:02] Client version: 1788400362
+        [2026-09-05 15:52:13] LogonFailure Account Logon Denied
+        """.write(to: console, atomically: true, encoding: .utf8)
+        #expect(SteamServices.needsGuardCode(prefix: prefix))
+
+        // A later session that connects fine must not be shadowed by the old denial.
+        try """
+        [2026-09-05 15:52:02] Client version: 1788400362
+        [2026-09-05 15:52:13] LogonFailure Account Logon Denied
+
+        [2026-09-05 16:00:00] Client version: 1788400362
+        [2026-09-05 16:00:03] Connected
+        """.write(to: console, atomically: true, encoding: .utf8)
+        #expect(!SteamServices.needsGuardCode(prefix: prefix))
+    }
+
+    @Test
     func signedInStateComesFromTheSteamApiRegistryKey() throws {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -173,6 +205,42 @@ struct LaunchPathTests {
         """#.write(to: reg, atomically: true, encoding: .utf8)
         #expect(SteamServices.activeUser(prefix: prefix) == 0x0abc_1234)
         #expect(SteamServices.isSignedIn(prefix: prefix))
+    }
+
+    @Test
+    func aDeniedLoginClearsItselfOnceAGuardCodeIsSaved() async throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let (supervisor, paths) = try makeSupervisor(home: home, wine: nil)
+        let wine = try writeFakeSteamClientWine(in: home)
+        try BackendConfigStore(paths: paths).save(BackendConfig(wine: wine.path))
+
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        let prefix = WineEnvironment(paths: paths).prefixURL(for: profile.id)
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir, withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "", paths: paths)
+
+        // No code yet: the client denies the code-less login.
+        let first = try await supervisor.prepareSteamServices(profile: profile)
+        #expect(first == .signingIn)
+        try await Task.sleep(for: .milliseconds(700))
+
+        let denied = try await supervisor.pollSteamLogin(profile: profile)
+        #expect(denied == .needsGuardCode)
+        #expect(!(await supervisor.steamSignedIn(profile: profile)))
+
+        // A fresh code arrives (the same fields Install uses) and Play is pressed again.
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "12345", paths: paths)
+        let retried = try await supervisor.pollSteamLogin(profile: profile)
+        #expect(retried == .signingIn)
+        try await Task.sleep(for: .milliseconds(700))
+
+        #expect(await supervisor.steamSignedIn(profile: profile))
+        let ready = try await supervisor.pollSteamLogin(profile: profile)
+        #expect(ready == .ready)
     }
 
     @Test
@@ -370,7 +438,9 @@ private func makeSupervisor(home: URL, wine: String?) throws -> (RuntimeSupervis
         telemetry: TelemetryLog(paths: paths),
         configStore: BackendConfigStore(paths: paths),
         environment: WineEnvironment(paths: paths),
-        launcher: BackendLauncher(paths: paths)
+        launcher: BackendLauncher(paths: paths),
+        services: SteamServices(paths: paths),
+        paths: paths
     )
     return (supervisor, paths)
 }
@@ -392,6 +462,35 @@ private func writeFakeWine(in dir: URL, hold: Bool) throws -> URL {
     \(holdLine)
     exit 0
     """
+    try script.write(to: url, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+    return url
+}
+
+/// Fakes the two things a real Steam client would do: deny a code-less `-login`
+/// (SteamCMD's device trust never carries over) and succeed once a code is passed.
+private func writeFakeSteamClientWine(in dir: URL) throws -> URL {
+    let url = dir.appendingPathComponent("fake-steam-wine")
+    let script = #"""
+    #!/bin/sh
+    echo "$*" >> "$(dirname "$0")/invocations.txt"
+    case "$1" in
+      *steam.exe)
+        LOGS="$WINEPREFIX/drive_c/Program Files (x86)/Steam/logs"
+        mkdir -p "$LOGS"
+        STAMP=$(date +%s)
+        if [ "$#" -ge 8 ]; then
+          printf '[Software\\\\Valve\\\\Steam\\\\ActiveProcess]\n"ActiveUser"=dword:00000001\n' > "$WINEPREFIX/user.reg"
+          printf '[%s] Client version: 1\n[%s] Connected\n' "$STAMP" "$STAMP" >> "$LOGS/console_log.txt"
+        else
+          printf '[%s] Client version: 1\n[%s] LogonFailure Account Logon Denied\n' "$STAMP" "$STAMP" >> "$LOGS/console_log.txt"
+        fi
+        sleep 5
+        exit 0
+        ;;
+    esac
+    exit 0
+    """#
     try script.write(to: url, atomically: true, encoding: .utf8)
     try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
     return url

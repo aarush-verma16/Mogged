@@ -6,6 +6,8 @@ import Foundation
 public enum SteamServicesState: Sendable, Equatable {
     case ready
     case signingIn
+    /// Steam denied the command-line login and wants a fresh code for this device.
+    case needsGuardCode
     case needsAccount
     case notInstalled
 }
@@ -109,6 +111,35 @@ public struct SteamServices: Sendable {
 
     public static func isSignedIn(prefix: URL) -> Bool {
         activeUser(prefix: prefix) != 0
+    }
+
+    /// Kills a stuck client even across app restarts, when `RuntimeSupervisor` has no
+    /// in-memory handle for it. `pkill -f` on this prefix's own `steam.exe` path only
+    /// ever matches this title's own client, never another title's or the real Steam.
+    public static func killOrphanedClient(prefix: URL) {
+        guard let exe = clientExe(prefix: prefix) else { return }
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        proc.arguments = ["-f", exe.path]
+        try? proc.run()
+        proc.waitUntilExit()
+    }
+
+    /// SteamCMD and the graphical Steam client hold separate device authorizations
+    /// even inside the same prefix: a SteamCMD login already trusted on this Mac does
+    /// not carry over, so the client's first `-login` on a fresh prefix comes back
+    /// "Account Logon Denied" and wants its own one-time code. Steam's window paints
+    /// black here, so that has to surface in Mogged instead — this reads the client's
+    /// own `console_log.txt` to notice.
+    public static func needsGuardCode(prefix: URL) -> Bool {
+        guard let dir = clientExe(prefix: prefix)?.deletingLastPathComponent(),
+              let log = try? String(contentsOf: dir.appendingPathComponent("logs/console_log.txt"), encoding: .utf8)
+        else { return false }
+        // Logs persist across restarts; only this run's section counts.
+        let session = log.components(separatedBy: "Client version:").last ?? log
+        return session.contains("LogonFailure Account Logon Denied")
+            || session.contains("LogonFailure Invalid Login Auth Code")
+            || session.contains("LogonFailure Account Login Denied Need Two Factor")
     }
 
     /// Start Steam so SteamAPI_Init and Steam Input can attach.

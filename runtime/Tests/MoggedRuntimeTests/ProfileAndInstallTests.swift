@@ -37,6 +37,7 @@ func userMessagesOmitToolkitNames() {
         .installFailed("x"),
         .installNeedsAccount,
         .steamSignInNeeded,
+        .steamGuardCodeNeeded,
         .steamAccountNeeded,
         .steamServicesMissing,
     ]

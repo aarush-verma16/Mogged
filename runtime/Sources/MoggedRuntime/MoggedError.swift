@@ -13,6 +13,7 @@ public enum MoggedError: Error, Equatable {
     case installFailed(String)
     case installNeedsAccount
     case steamSignInNeeded
+    case steamGuardCodeNeeded
     case steamAccountNeeded
     case steamServicesMissing
 
@@ -41,6 +42,8 @@ public enum MoggedError: Error, Equatable {
             return "Enter your Steam account to install."
         case .steamSignInNeeded:
             return "Steam didn't finish signing in for this game. Press Play again."
+        case .steamGuardCodeNeeded:
+            return "Steam needs a one-time code for this Mac. Check your email or Steam Mobile app, paste the code below, then press Play."
         case .steamAccountNeeded:
             return "This game needs your Steam account. Enter it above, then press Play."
         case .steamServicesMissing:
@@ -74,6 +77,8 @@ public enum MoggedError: Error, Equatable {
             return "steam account required"
         case .steamSignInNeeded:
             return "steam not signed in for this title"
+        case .steamGuardCodeNeeded:
+            return "steam client denied login, needs a fresh device code"
         case .steamAccountNeeded:
             return "no stored steam account for sign-in"
         case .steamServicesMissing:

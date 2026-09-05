@@ -29,6 +29,7 @@ final class AppModel {
     var credentialsSaved = false
     var steamServicesReady = false
     var steamSignedIn = false
+    var steamNeedsGuardCode = false
 
     enum LogTab: String, CaseIterable, Identifiable {
         case errors
@@ -148,18 +149,30 @@ final class AppModel {
     /// "Unable to initialize Steam Input". Signing in takes a few seconds.
     private func waitForSteam(_ entry: LibraryEntry) async -> Bool {
         guard entry.profile.settings?.needsSteamClient == true else { return true }
-        do {
-            switch try await supervisor.prepareSteamServices(profile: entry.profile) {
+
+        func handle(_ state: SteamServicesState) -> Bool? {
+            switch state {
             case .ready:
+                steamNeedsGuardCode = false
                 return true
             case .signingIn:
-                break
+                return nil
+            case .needsGuardCode:
+                steamNeedsGuardCode = true
+                rememberError(MoggedError.steamGuardCodeNeeded.userMessage)
+                return false
             case .needsAccount:
                 rememberError(MoggedError.steamAccountNeeded.userMessage)
                 return false
             case .notInstalled:
                 rememberError(MoggedError.steamServicesMissing.userMessage)
                 return false
+            }
+        }
+
+        do {
+            if let done = handle(try await supervisor.prepareSteamServices(profile: entry.profile)) {
+                return done
             }
         } catch let error as MoggedError {
             rememberError(error.userMessage)
@@ -172,9 +185,17 @@ final class AppModel {
         rememberNotice("Signing in to Steam for \(entry.profile.displayName)…")
         for _ in 0..<Self.steamSignInPolls {
             try? await Task.sleep(for: .seconds(2))
-            if await supervisor.steamSignedIn(profile: entry.profile) {
-                rememberNotice("Steam ready. Starting \(entry.profile.displayName)…")
-                return true
+            do {
+                if let done = handle(try await supervisor.pollSteamLogin(profile: entry.profile)) {
+                    if done { rememberNotice("Steam ready. Starting \(entry.profile.displayName)…") }
+                    return done
+                }
+            } catch let error as MoggedError {
+                rememberError(error.userMessage)
+                return false
+            } catch {
+                rememberError(String(describing: error))
+                return false
             }
         }
         rememberError(MoggedError.steamSignInNeeded.userMessage)
@@ -337,6 +358,7 @@ final class AppModel {
         steamPassword = ""
         steamGuard = ""
         credentialsSaved = false
+        steamNeedsGuardCode = false
     }
 
     private func loadSavedCredentials() {

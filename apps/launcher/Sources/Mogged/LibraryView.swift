@@ -345,10 +345,14 @@ struct LibraryView: View {
     private var showCodeField: Bool {
         !model.steamGuard.isEmpty
             || model.install?.phase == "Guard"
+            || model.steamNeedsGuardCode
             || (!model.bannerIsError && model.banner != nil)
     }
 
     private var accountHint: String {
+        if model.steamNeedsGuardCode {
+            return "Steam needs a new code for this Mac. Check email or Steam Mobile, paste it, then press Play."
+        }
         if !model.bannerIsError, model.banner != nil { return "Paste the code, then Install. It's saved on this Mac." }
         if !model.steamGuard.isEmpty { return "Code is saved. Change it only if Steam asks again." }
         return "Account name, not email. Get code, paste it, then Install."

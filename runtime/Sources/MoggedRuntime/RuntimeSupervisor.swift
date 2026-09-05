@@ -27,6 +27,7 @@ public actor RuntimeSupervisor {
     private let catalog: SteamCatalog
     private let installer: DepotInstaller
     private let services: SteamServices
+    private let paths: RuntimePaths
     private var running: [String: ProcessHandle] = [:]
     private var lastPlan: [String: LaunchPlan] = [:]
     private var lastExit: [String: Int32] = [:]
@@ -42,7 +43,8 @@ public actor RuntimeSupervisor {
         launcher: BackendLauncher = BackendLauncher(),
         catalog: SteamCatalog = SteamCatalog(),
         installer: DepotInstaller = DepotInstaller(),
-        services: SteamServices = SteamServices()
+        services: SteamServices = SteamServices(),
+        paths: RuntimePaths = .standard()
     ) {
         self.catalog = catalog
         self.locator = locator ?? InstallLocator(catalog: catalog)
@@ -54,6 +56,7 @@ public actor RuntimeSupervisor {
         self.launcher = launcher
         self.installer = installer
         self.services = services
+        self.paths = paths
     }
 
     public func steamSnapshot() -> SteamSnapshot {
@@ -179,6 +182,7 @@ public actor RuntimeSupervisor {
             switch startSteamServices(profile: profile, prefix: trees.prefix, config: config) {
             case .ready: break
             case .signingIn: throw MoggedError.steamSignInNeeded
+            case .needsGuardCode: throw MoggedError.steamGuardCodeNeeded
             case .needsAccount: throw MoggedError.steamAccountNeeded
             case .notInstalled: throw MoggedError.steamServicesMissing
             }
@@ -268,11 +272,25 @@ public actor RuntimeSupervisor {
             telemetry.record(TelemetryEvent(event: "steam.services.missing", titleId: profile.id))
             return .notInstalled
         }
-        guard let credentials = SteamCredentialStore.load() else {
+        guard let credentials = SteamCredentialStore.load(paths: paths) else {
             telemetry.record(TelemetryEvent(event: "steam.services.noaccount", titleId: profile.id))
             return .needsAccount
         }
-        if steamClient?.isRunning == true { return .signingIn }
+
+        // Checked by log content, not just the in-memory handle: a denied client from
+        // a previous app run is still out there retrying the same rejected login, and
+        // this actor would not otherwise know about it.
+        if SteamServices.needsGuardCode(prefix: prefix) {
+            steamClient?.terminate()
+            steamClient = nil
+            SteamServices.killOrphanedClient(prefix: prefix)
+            guard !credentials.guardCode.isEmpty else {
+                telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
+                return .needsGuardCode
+            }
+        } else if steamClient?.isRunning == true {
+            return .signingIn
+        }
 
         do {
             steamClient = try services.start(
@@ -307,6 +325,13 @@ public actor RuntimeSupervisor {
     public func steamSignedIn(profile: TitleProfile) -> Bool {
         guard profile.settings?.needsSteamClient == true else { return true }
         return SteamServices.isSignedIn(prefix: environment.prefixURL(for: profile.id))
+    }
+
+    /// `prepareSteamServices` is safe to call again: signed in and up short-circuit,
+    /// a stuck denied login gets cleared, and a fresh code in the store gets used
+    /// immediately. Play polls this rather than a separate read-only check.
+    public func pollSteamLogin(profile: TitleProfile) throws -> SteamServicesState {
+        try prepareSteamServices(profile: profile)
     }
 
     /// One-time: put Steam in this title's environment so Steam Input works.
