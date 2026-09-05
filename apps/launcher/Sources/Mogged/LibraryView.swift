@@ -312,6 +312,12 @@ struct LibraryView: View {
                     .padding(.horizontal, Theme.Space.x2)
                     .frame(width: 88, height: 28)
                     .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
+                Button("Get code") { Task { await model.requestGuard() } }
+                    .buttonStyle(.plain)
+                    .font(Theme.mono(10, weight: .medium))
+                    .foregroundStyle(Theme.ink)
+                    .disabled(model.isBusy || model.install?.running == true || model.steamUser.isEmpty || model.steamPassword.isEmpty)
+                    .opacity(model.isBusy || model.install?.running == true || model.steamUser.isEmpty || model.steamPassword.isEmpty ? 0.4 : 1)
                 Button(model.credentialsSaved ? "saved" : "Save") { model.saveCredentials() }
                     .buttonStyle(.plain)
                     .font(Theme.mono(10, weight: .medium))
@@ -321,7 +327,7 @@ struct LibraryView: View {
                     .font(Theme.mono(10))
                     .foregroundStyle(Theme.muted)
             }
-            Text("guard = Steam app or email code (one-time, never saved). Save stores user+password in the Mac Keychain.")
+            Text("Get code signs in (no download). Steam emails a code, or open the Steam phone app. Paste it in guard, then Install.")
                 .font(Theme.mono(10))
                 .foregroundStyle(Theme.muted)
         }

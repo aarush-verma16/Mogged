@@ -150,6 +150,22 @@ final class AppModel {
         }
     }
 
+    func requestGuard() async {
+        banner = nil
+        saveCredentials()
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            try await supervisor.requestGuard(username: steamUser, password: steamPassword)
+            await refresh()
+        } catch let error as MoggedError {
+            rememberError(error.userMessage)
+            await refresh()
+        } catch {
+            rememberError(String(describing: error))
+        }
+    }
+
     func cancelInstall() async {
         await supervisor.cancelInstall()
         await refresh()

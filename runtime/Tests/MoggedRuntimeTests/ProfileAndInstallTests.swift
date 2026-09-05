@@ -108,3 +108,11 @@ func errorFeedKeepsFailuresOnly() {
     #expect(lines.contains(where: { $0.contains("launch.failed") }))
     #expect(!lines.contains(where: { $0.contains("progress") }))
 }
+
+@Test
+func guardHintPointsAtSteamAppOrEmail() {
+    let email = DepotInstaller.guardHint(from: "This account is protected by Steam Guard. Check your email.")
+    #expect(email.lowercased().contains("email"))
+    let app = DepotInstaller.guardHint(from: "Mobile authenticator two-factor code required")
+    #expect(app.lowercased().contains("steam"))
+}

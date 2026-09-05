@@ -109,6 +109,15 @@ public actor RuntimeSupervisor {
         telemetry.record(TelemetryEvent(event: "install.started", titleId: profile.id))
     }
 
+    public func requestGuard(username: String, password: String) async throws {
+        telemetry.record(TelemetryEvent(event: "login.guard.requested", titleId: "steam-login"))
+        try await installer.ensureSteamCMD()
+        try installer.startLogin(username: username, password: password) { [weak self] snap in
+            guard let self else { return }
+            Task { await self.noteInstallExit(snap) }
+        }
+    }
+
     public func cancelInstall() {
         installer.cancel()
         telemetry.record(TelemetryEvent(event: "install.stopped", titleId: installer.current().titleId))
@@ -333,6 +342,10 @@ public actor RuntimeSupervisor {
     }
 
     private func noteInstallExit(_ snap: InstallSnapshot) {
+        if snap.titleId == "steam-login" {
+            telemetry.record(TelemetryEvent(event: "login.guard", titleId: snap.titleId, detail: snap.line))
+            return
+        }
         if snap.succeeded {
             try? library.setOverride(titleId: snap.titleId, path: snap.path)
             telemetry.record(TelemetryEvent(event: "install.finished", titleId: snap.titleId, detail: snap.path))

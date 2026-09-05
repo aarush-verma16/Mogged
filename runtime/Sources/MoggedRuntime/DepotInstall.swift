@@ -272,6 +272,123 @@ public final class DepotInstaller: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Login only so Steam emails / prompts a Guard code. Does not download a game.
+    public func startLogin(
+        username: String,
+        password: String,
+        onExit: @escaping @Sendable (InstallSnapshot) -> Void
+    ) throws {
+        let user = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pass = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !user.isEmpty, !pass.isEmpty else {
+            throw MoggedError.installNeedsAccount
+        }
+        if isRunning {
+            throw MoggedError.alreadyInstalling("steam-login")
+        }
+
+        try paths.ensure()
+        try awaitableSteamcmdPresent()
+
+        let executable: URL
+        var arguments: [String]
+        if FileManager.default.isExecutableFile(atPath: steamcmdScript.path) {
+            executable = URL(fileURLWithPath: "/bin/bash")
+            arguments = [steamcmdScript.path]
+        } else if FileManager.default.isExecutableFile(atPath: steamcmdBinary.path) {
+            executable = steamcmdBinary
+            arguments = []
+        } else {
+            throw MoggedError.installFailed("Installer missing. Click Get code again.")
+        }
+
+        arguments += ["+login", user, pass, "+quit"]
+
+        let logURL = paths.logs.appendingPathComponent("install-steam-login.log")
+        if !FileManager.default.fileExists(atPath: logURL.path) {
+            FileManager.default.createFile(atPath: logURL.path, contents: Data())
+        }
+
+        let proc = Process()
+        proc.executableURL = executable
+        proc.arguments = arguments
+        proc.currentDirectoryURL = paths.steamcmd
+        var env = ProcessInfo.processInfo.environment
+        env["DYLD_LIBRARY_PATH"] = paths.steamcmd.path
+        env["DYLD_FRAMEWORK_PATH"] = paths.steamcmd.path
+        proc.environment = env
+        proc.qualityOfService = .utility
+
+        let pipe = Pipe()
+        proc.standardOutput = pipe
+        proc.standardError = pipe
+        proc.standardInput = FileHandle.nullDevice
+
+        apply { snap in
+            snap = InstallSnapshot(
+                titleId: "steam-login",
+                phase: "Guard",
+                line: "signing in so Steam can send a code",
+                running: true
+            )
+        }
+        logLines = ["steam login (no download) — check Steam app or email for Guard"]
+
+        pipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { return }
+            self?.ingest(chunk, password: pass, logURL: logURL)
+        }
+
+        proc.terminationHandler = { [weak self] _ in
+            pipe.fileHandleForReading.readabilityHandler = nil
+            guard let self else { return }
+            let log = self.current().log
+            let hint = Self.guardHint(from: log)
+            self.apply { snap in
+                snap.running = false
+                snap.succeeded = false
+                snap.phase = "Guard"
+                snap.line = hint
+                snap.error = hint
+            }
+            onExit(self.current())
+        }
+
+        do {
+            try proc.run()
+        } catch {
+            throw MoggedError.installFailed("could not start sign-in")
+        }
+
+        lock.lock()
+        process = proc
+        lock.unlock()
+    }
+
+    public static func guardHint(from log: String) -> String {
+        let line = log.lowercased()
+        if line.contains("logged in ok") || line.contains("waiting for user info") && !line.contains("failed") {
+            return "Signed in. Leave guard empty and click Install."
+        }
+        if line.contains("two-factor") || line.contains("authenticator") || line.contains("mobile authenticator") {
+            return "Open the Steam phone app, copy the Guard code, paste it here, then Install."
+        }
+        if line.contains("email") || line.contains("steam guard") || line.contains("guard code") {
+            return "Steam sent a code to your email. Paste it in guard, then Install."
+        }
+        return "Open the Steam app or your email for a Guard code. Paste it, then Install."
+    }
+
+    private func awaitableSteamcmdPresent() throws {
+        if FileManager.default.isExecutableFile(atPath: steamcmdScript.path)
+            || FileManager.default.isExecutableFile(atPath: steamcmdBinary.path)
+        {
+            return
+        }
+        throw MoggedError.installFailed("Installer missing. Click Get code again.")
+    }
+
     private var steamcmdScript: URL {
         paths.steamcmd.appendingPathComponent("steamcmd.sh")
     }
