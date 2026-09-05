@@ -172,7 +172,17 @@ public actor RuntimeSupervisor {
         }
 
         preparePrefix(prefix: trees.prefix, profile: profile, config: config)
-        startSteamServicesIfNeeded(profile: profile, prefix: trees.prefix, config: config)
+
+        // A title that calls SteamAPI_Init dies on its own splash screen without a
+        // signed-in Steam, so Steam goes first and the game waits for it.
+        if profile.settings?.needsSteamClient == true {
+            switch startSteamServices(profile: profile, prefix: trees.prefix, config: config) {
+            case .ready: break
+            case .signingIn: throw MoggedError.steamSignInNeeded
+            case .needsAccount: throw MoggedError.steamAccountNeeded
+            case .notInstalled: throw MoggedError.steamServicesMissing
+            }
+        }
 
         BackendLauncher.ensureSteamInf(installRoot: install.path, profile: profile)
         let plan = launcher.plan(
@@ -245,26 +255,33 @@ public actor RuntimeSupervisor {
         try? want.write(to: marker, atomically: true, encoding: .utf8)
     }
 
-    /// Steam Input and SteamAPI_Init only work with Steam running in the same prefix.
-    private func startSteamServicesIfNeeded(profile: TitleProfile, prefix: URL, config: BackendConfig) {
-        guard profile.settings?.needsSteamClient == true else { return }
-        if steamClient?.isRunning == true { return }
+    /// Starts Steam if it is not up yet. Signing in takes seconds, so this reports
+    /// state and the caller polls rather than blocking this actor.
+    private func startSteamServices(
+        profile: TitleProfile,
+        prefix: URL,
+        config: BackendConfig
+    ) -> SteamServicesState {
+        if SteamServices.isSignedIn(prefix: prefix) { return .ready }
 
         guard let exe = SteamServices.clientExe(prefix: prefix) else {
-            telemetry.record(
-                TelemetryEvent(
-                    event: "steam.services.missing",
-                    titleId: profile.id,
-                    detail: "Steam Input needs Steam installed for this game. Click Add Steam."
-                )
-            )
-            return
+            telemetry.record(TelemetryEvent(event: "steam.services.missing", titleId: profile.id))
+            return .notInstalled
         }
+        guard let credentials = SteamCredentialStore.load() else {
+            telemetry.record(TelemetryEvent(event: "steam.services.noaccount", titleId: profile.id))
+            return .needsAccount
+        }
+        if steamClient?.isRunning == true { return .signingIn }
 
         do {
-            steamClient = try services.start(prefix: prefix, config: config, exe: exe)
+            steamClient = try services.start(
+                prefix: prefix,
+                config: config,
+                exe: exe,
+                credentials: credentials
+            )
             telemetry.record(TelemetryEvent(event: "steam.services.started", titleId: profile.id))
-            Thread.sleep(forTimeInterval: 3)
         } catch {
             telemetry.record(
                 TelemetryEvent(
@@ -274,6 +291,22 @@ public actor RuntimeSupervisor {
                 )
             )
         }
+        return .signingIn
+    }
+
+    /// Called by Play before launching: brings Steam up and reports sign-in state so
+    /// the app can show progress while Steam works.
+    public func prepareSteamServices(profile: TitleProfile) throws -> SteamServicesState {
+        guard profile.settings?.needsSteamClient == true else { return .ready }
+        let config = try configStore.resolve(discover: { probe.wineBinary() })
+        let trees = try environment.ensure(for: profile.id)
+        preparePrefix(prefix: trees.prefix, profile: profile, config: config)
+        return startSteamServices(profile: profile, prefix: trees.prefix, config: config)
+    }
+
+    public func steamSignedIn(profile: TitleProfile) -> Bool {
+        guard profile.settings?.needsSteamClient == true else { return true }
+        return SteamServices.isSignedIn(prefix: environment.prefixURL(for: profile.id))
     }
 
     /// One-time: put Steam in this title's environment so Steam Input works.

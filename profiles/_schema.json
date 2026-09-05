@@ -56,7 +56,7 @@
           "type": "object",
           "description": "Windowed titles get a native Mac frame with traffic lights",
           "properties": {
-            "mode": { "enum": ["windowed", "fullscreen"] },
+            "mode": { "enum": ["windowed", "desktop", "fullscreen"] },
             "width": { "type": "integer" },
             "height": { "type": "integer" }
           }

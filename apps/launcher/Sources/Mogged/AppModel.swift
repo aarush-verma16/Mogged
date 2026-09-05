@@ -28,6 +28,7 @@ final class AppModel {
     var steamGuard = ""
     var credentialsSaved = false
     var steamServicesReady = false
+    var steamSignedIn = false
 
     enum LogTab: String, CaseIterable, Identifiable {
         case errors
@@ -87,6 +88,7 @@ final class AppModel {
                 session = await supervisor.inspectSession(profile: entry.profile, install: entry.install)
                 gameLog = await supervisor.gameLogTail(titleId: entry.id)
                 steamServicesReady = await supervisor.steamServicesReady(profile: entry.profile)
+                steamSignedIn = await supervisor.steamSignedIn(profile: entry.profile)
             }
             runtimeLog = await supervisor.telemetryTail()
             install = await supervisor.inspectInstall()
@@ -131,6 +133,7 @@ final class AppModel {
         isBusy = true
         defer { isBusy = false }
         do {
+            guard await waitForSteam(entry) else { return }
             _ = try await supervisor.launch(profile: entry.profile)
             await refresh()
         } catch let error as MoggedError {
@@ -140,6 +143,45 @@ final class AppModel {
             rememberError(String(describing: error))
         }
     }
+
+    /// Steam signs in before the game starts, otherwise the title stalls on
+    /// "Unable to initialize Steam Input". Signing in takes a few seconds.
+    private func waitForSteam(_ entry: LibraryEntry) async -> Bool {
+        guard entry.profile.settings?.needsSteamClient == true else { return true }
+        do {
+            switch try await supervisor.prepareSteamServices(profile: entry.profile) {
+            case .ready:
+                return true
+            case .signingIn:
+                break
+            case .needsAccount:
+                rememberError(MoggedError.steamAccountNeeded.userMessage)
+                return false
+            case .notInstalled:
+                rememberError(MoggedError.steamServicesMissing.userMessage)
+                return false
+            }
+        } catch let error as MoggedError {
+            rememberError(error.userMessage)
+            return false
+        } catch {
+            rememberError(String(describing: error))
+            return false
+        }
+
+        rememberNotice("Signing in to Steam for \(entry.profile.displayName)…")
+        for _ in 0..<Self.steamSignInPolls {
+            try? await Task.sleep(for: .seconds(2))
+            if await supervisor.steamSignedIn(profile: entry.profile) {
+                rememberNotice("Steam ready. Starting \(entry.profile.displayName)…")
+                return true
+            }
+        }
+        rememberError(MoggedError.steamSignInNeeded.userMessage)
+        return false
+    }
+
+    private static let steamSignInPolls = 45
 
     func stop(_ entry: LibraryEntry) async {
         banner = nil
@@ -200,11 +242,11 @@ final class AppModel {
         bannerIsError = true
         isBusy = true
         defer { isBusy = false }
-        rememberNotice("Adding Steam for \(entry.profile.displayName). Sign in once when it opens.")
+        rememberNotice("Adding Steam for \(entry.profile.displayName). This takes a minute.")
         do {
             try await supervisor.addSteamServices(profile: entry.profile)
             steamServicesReady = await supervisor.steamServicesReady(profile: entry.profile)
-            rememberNotice("Steam added. Click Play, sign in, then Steam Input works.")
+            rememberNotice("Steam added. Click Play — Mogged signs in for you.")
             await refresh()
         } catch let error as MoggedError {
             rememberError(error.userMessage)
@@ -285,23 +327,23 @@ final class AppModel {
     }
 
     func saveCredentials() {
-        SteamKeychain.save(user: steamUser, password: steamPassword, guardCode: steamGuard)
+        SteamCredentialStore.save(user: steamUser, password: steamPassword, guardCode: steamGuard)
         UserDefaults.standard.removeObject(forKey: "mogged.steamUser")
-        credentialsSaved = SteamKeychain.load() != nil
+        credentialsSaved = SteamCredentialStore.load() != nil
     }
 
     func forgetCredentials() {
-        SteamKeychain.delete()
+        SteamCredentialStore.delete()
         steamPassword = ""
         steamGuard = ""
         credentialsSaved = false
     }
 
     private func loadSavedCredentials() {
-        if let saved = SteamKeychain.load() {
+        if let saved = SteamCredentialStore.load() {
             steamUser = saved.user
             steamPassword = saved.password
-            steamGuard = saved.guard
+            steamGuard = saved.guardCode
             credentialsSaved = true
             return
         }

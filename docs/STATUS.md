@@ -19,12 +19,13 @@ Done:
 - Optimization layer: thermal → FPS cap (60/40/30), FSR Quality, RT off (ADR-011). v1 is **this Mac**.
 - Translation engine is on disk and probed: Gcenx Wine Staging **11.16** ran `cmd.exe` (`mogged-ok`). MoltenVK sees **Apple M4 Pro**. DXVK-macOS `d3d11.dll` + `d3d10core.dll` in `third_party/dxvk/x64`.
 - **Aperture Desk Job boots and draws.** 2026-09-05: `launch.exited code=0` after ~47s. DXVK 1.10.3 created a D3D11 device on M4 Pro; MoltenVK made a 1800×1169 `CAMetalLayer` swapchain. Path to that: DXVK staged in `engine/dxvk` and copied into the prefix, `game` as working directory with `-game steampal`, generated `steam.inf`, and Wine’s MoltenVK **JSON ICD** (a raw dylib in `VK_ICD_FILENAMES` lost `VK_KHR_surface` → exit 5).
-- Titles run in a real Mac window with traffic lights: hosted in a Wine desktop sized by `launch.window`, Mac driver `Decorated=Y` written once per environment (ADR-014).
+- **Desk Job runs in a real Mac window with traffic lights.** 2026-09-05, captured from the live window: framed 1024×800 window, in-game overlay reporting **60.0 FPS**, GPU 53%, 1836 MB vidmem. Not a benchmark file yet, so it is not the quality bar. Window size and mode are `launch.window` in the profile (ADR-014); Source 2 needs `-width`/`-height`, it ignores `-w`/`-h` and falls back to 1024×768.
+- Steam signs in from the command line before the game starts (ADR-015). Steam's own window paints black on this stack and its `-cef-*` flags never reach Chromium, so it stays hidden.
 
 Not done:
 
-- **Steam Input is not initialized.** Desk Job calls `SteamAPI_Init`; SteamCMD only fetches files, so no Steam runs in the prefix. Runtime now has `SteamServices` + an **Add Steam** action (ADR-013). Not yet exercised end to end.
-- No FPS number yet. Booting is not the quality bar; do not claim smoothness.
+- **Steam Input is still not initialized.** Desk Job shows "Unable to initialize Steam Input" over the rendered scene and will not go past it. Steam installs into the environment and connects, but no sign-in has completed yet: the client had no stored account to sign in with (ADR-015), and the interactive login screen is unusable. Untested end to end.
+- No benchmark file yet. The 60 FPS above is the game's own overlay on a title screen, not `tools/benchmark` output, and not the quality bar.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
 

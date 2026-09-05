@@ -338,7 +338,8 @@ struct LibraryView: View {
 
     private func steamInputLabel(_ entry: LibraryEntry) -> String {
         guard entry.profile.settings?.needsSteamClient == true else { return "not needed" }
-        return model.steamServicesReady ? "ready" : "needs Steam · Add Steam"
+        if !model.steamServicesReady { return "needs Steam · Add Steam" }
+        return model.steamSignedIn ? "ready · signed in" : "signs in on Play"
     }
 
     private var showCodeField: Bool {

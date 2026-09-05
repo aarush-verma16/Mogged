@@ -27,5 +27,9 @@ STABLE="$SUPPORT/Mogged.app"
 rm -rf "$STABLE"
 ditto "$APP" "$STABLE"
 
+# `open` on a running app only activates it, so a rebuilt binary would never run.
+pkill -f "Mogged.app/Contents/MacOS/Mogged" 2>/dev/null || true
+while pgrep -f "Mogged.app/Contents/MacOS/Mogged" >/dev/null 2>&1; do sleep 0.2; done
+
 # Do not pass repo paths into the app. Desktop/Mogged would re-ask for Desktop access.
 open "$STABLE"

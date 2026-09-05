@@ -90,14 +90,12 @@ public struct BackendLauncher: Sendable {
         )
     }
 
-    /// Windowed titles run inside a Wine desktop, which the Mac driver draws as one
-    /// real window: title bar, traffic lights, drag, resize.
+    /// A windowed title already gets a framed Mac window with traffic lights, so it
+    /// runs directly. Only `desktop` mode needs the extra hosting window.
     public static func arguments(profile: TitleProfile, exe: URL) -> [String] {
         let game = [exe.path] + (profile.launch?.args ?? [])
-        let window = profile.launch?.window
-        guard window?.isWindowed ?? true else { return game }
-        let size = window?.size ?? "1600x900"
-        return ["explorer", "/desktop=mogged-\(profile.id),\(size)"] + game
+        guard let window = profile.launch?.window, window.isHosted else { return game }
+        return ["explorer", "/desktop=mogged-\(profile.id),\(window.size)"] + game
     }
 
     public static func workingDirectory(

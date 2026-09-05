@@ -48,6 +48,10 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
     }
 
     /// How the game's window sits on the Mac desktop.
+    /// `windowed` — the title's own window, framed by macOS.
+    /// `desktop` — for titles that insist on a borderless grab: host them in a
+    /// single framed window instead. Costs a compositing hop.
+    /// `fullscreen` — no frame, no controls.
     public struct Window: Codable, Sendable, Equatable {
         public let mode: String?
         public let width: Int?
@@ -55,6 +59,7 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
 
         /// Windowed by default: a borderless full-screen grab has no traffic lights.
         public var isWindowed: Bool { (mode ?? "windowed").lowercased() != "fullscreen" }
+        public var isHosted: Bool { (mode ?? "windowed").lowercased() == "desktop" }
         public var pixelWidth: Int { max(width ?? 1600, 640) }
         public var pixelHeight: Int { max(height ?? 900, 480) }
         public var size: String { "\(pixelWidth)x\(pixelHeight)" }

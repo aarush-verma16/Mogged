@@ -6,10 +6,17 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-015 — Mogged signs Steam in on the command line; Steam's window is never shown
+
+- **Status:** accepted
+- **Decision:** For titles with `settings.steamClient`, the runtime starts Steam with `-login <account> <password> [code] -silent -no-browser`, using the account Mogged already stores, and waits for `Software\Valve\Steam\ActiveProcess\ActiveUser` to go non-zero before launching the game. Steam's own UI is never part of the flow, and Mogged owns every credential field the player sees.
+- **Why:** Steam's UI is Chromium, which composites in a second process and hands frames over a shared swapchain this stack has no path for, so the window paints black. Steam's `-cef-disable-gpu` / `-cef-in-process-gpu` flags do **not** reach Chromium — measured 2026-09-05: `steamwebhelper.exe` still starts `--type=gpu-process`, and the login screen polled `Failed to poll auth session` forever. The known community fix is a replacement `steamwebhelper.exe` that injects Chromium flags; that is a compiled Windows shim we do not need if the player never sees the window.
+- **Cost:** The password reaches Steam as a process argument, readable by other processes on this Mac for the life of the sign-in. Sign-in also depends on a Guard code being current. If Steam ever demands interactive confirmation we cannot satisfy, the shim becomes unavoidable.
+
 ## ADR-014 — Games run in a real Mac window by default
 
 - **Status:** accepted
-- **Decision:** Every title launches **windowed** in a normal macOS window with a title bar and traffic lights, sized by `launch.window` in `profiles/*.json` (default 1600×900). The runtime gets this by hosting the game in a Wine desktop and setting the Mac driver's `Decorated` key once per environment; a title can opt out with `"mode": "fullscreen"`.
+- **Decision:** Every title launches **windowed** in a normal macOS window with a title bar and traffic lights, sized by `launch.window` in `profiles/*.json`. The title's own window is framed by macOS, so `windowed` passes the game straight through and only the engine flags change. Two escapes: `"mode": "desktop"` hosts a title that insists on a borderless grab inside one framed window, and `"mode": "fullscreen"` opts out entirely.
 - **Why:** A borderless full-screen grab has no close button, hides the launcher, and makes a hung title look like a frozen Mac. Close, minimize, and Cmd-Tab must behave the way they do for any Mac app.
 - **Cost:** Composited output instead of a direct full-screen surface. Measure before treating this as the cause of any FPS gap.
 

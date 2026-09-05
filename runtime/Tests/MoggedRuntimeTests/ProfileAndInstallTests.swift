@@ -36,6 +36,9 @@ func userMessagesOmitToolkitNames() {
         .alreadyInstalling("x"),
         .installFailed("x"),
         .installNeedsAccount,
+        .steamSignInNeeded,
+        .steamAccountNeeded,
+        .steamServicesMissing,
     ]
     let banned = ["wine", "gptk", "crossover", "proton", "bottle", "prefix", "winetricks"]
     for error in errors {

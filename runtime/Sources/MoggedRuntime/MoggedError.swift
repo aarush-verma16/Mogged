@@ -12,6 +12,9 @@ public enum MoggedError: Error, Equatable {
     case alreadyInstalling(String)
     case installFailed(String)
     case installNeedsAccount
+    case steamSignInNeeded
+    case steamAccountNeeded
+    case steamServicesMissing
 
     /// Shown in the app. Never names a toolkit.
     public var userMessage: String {
@@ -36,6 +39,12 @@ public enum MoggedError: Error, Equatable {
             return detail.isEmpty ? "Couldn't install this game." : detail
         case .installNeedsAccount:
             return "Enter your Steam account to install."
+        case .steamSignInNeeded:
+            return "Steam didn't finish signing in for this game. Press Play again."
+        case .steamAccountNeeded:
+            return "This game needs your Steam account. Enter it above, then press Play."
+        case .steamServicesMissing:
+            return "Click Add Steam for this game first."
         }
     }
 
@@ -63,6 +72,12 @@ public enum MoggedError: Error, Equatable {
             return "install failed: \(detail)"
         case .installNeedsAccount:
             return "steam account required"
+        case .steamSignInNeeded:
+            return "steam not signed in for this title"
+        case .steamAccountNeeded:
+            return "no stored steam account for sign-in"
+        case .steamServicesMissing:
+            return "steam client not installed in this environment"
         }
     }
 }

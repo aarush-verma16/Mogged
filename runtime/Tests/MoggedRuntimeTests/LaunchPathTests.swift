@@ -69,16 +69,19 @@ struct LaunchPathTests {
     }
 
     @Test
-    func windowedTitleRunsInsideADecoratedDesktop() throws {
+    func windowedTitleKeepsItsOwnFramedWindow() throws {
         let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
         #expect(profile.launch?.window?.isWindowed == true)
+        #expect(profile.launch?.window?.isHosted == false)
 
         let exe = URL(fileURLWithPath: "/tmp/deskjob.exe")
         let args = BackendLauncher.arguments(profile: profile, exe: exe)
-        #expect(args.first == "explorer")
-        #expect(args[1] == "/desktop=mogged-aperture-desk-job,1600x900")
-        #expect(args[2] == exe.path)
+        #expect(args.first == exe.path)
+        #expect(!args.contains("explorer"))
+        // Source 2 reads -width/-height. It ignores -w/-h and opens 1024x768.
         #expect(args.contains("-windowed"))
+        #expect(args.contains("-width"))
+        #expect(args.contains("1600"))
 
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -93,12 +96,24 @@ struct LaunchPathTests {
     }
 
     @Test
-    func fullscreenTitleSkipsTheWineDesktop() throws {
-        let profile = try decodeProfile("""
+    func desktopModeHostsBorderlessTitleInOneWindow() throws {
+        let exe = URL(fileURLWithPath: "/tmp/game.exe")
+        let hosted = try windowModeProfile("desktop")
+        #expect(BackendLauncher.arguments(profile: hosted, exe: exe) == [
+            "explorer", "/desktop=mogged-window-test,1280x720", exe.path,
+        ])
+
+        let full = try windowModeProfile("fullscreen")
+        #expect(BackendLauncher.arguments(profile: full, exe: exe) == [exe.path])
+        #expect(full.launch?.window?.isWindowed == false)
+    }
+
+    private func windowModeProfile(_ mode: String) throws -> TitleProfile {
+        try decodeProfile("""
         {
-          "id": "fullscreen-test",
+          "id": "window-test",
           "steamAppId": 2,
-          "displayName": "Fullscreen",
+          "displayName": "Window",
           "role": "smoke",
           "engine": "test",
           "graphicsApi": "d3d11",
@@ -106,11 +121,81 @@ struct LaunchPathTests {
           "macNative": false,
           "backend": { "preferred": "dxvk-moltenvk" },
           "executables": ["game.exe"],
-          "launch": { "window": { "mode": "fullscreen" } }
+          "launch": { "window": { "mode": "\(mode)", "width": 1280, "height": 720 } }
         }
         """)
-        let exe = URL(fileURLWithPath: "/tmp/game.exe")
-        #expect(BackendLauncher.arguments(profile: profile, exe: exe) == [exe.path])
+    }
+
+    @Test
+    func steamSignsInOnTheCommandLineAndStaysHidden() throws {
+        let exe = URL(fileURLWithPath: "/tmp/steam.exe")
+        let creds = SteamCredentials(user: "player", password: "secret", guardCode: "ABCDE")
+        let signIn = SteamServices.startArguments(exe: exe, credentials: creds)
+
+        #expect(signIn.first == exe.path)
+        #expect(signIn.contains("-login"))
+        #expect(signIn.suffix(3) == ["player", "secret", "ABCDE"])
+        // Steam's window paints black under this stack, so it never comes up.
+        #expect(signIn.contains("-silent"))
+        #expect(signIn.contains("-no-browser"))
+
+        let noGuard = SteamServices.startArguments(
+            exe: exe,
+            credentials: SteamCredentials(user: "player", password: "secret")
+        )
+        #expect(noGuard.suffix(2) == ["player", "secret"])
+    }
+
+    @Test
+    func signedInStateComesFromTheSteamApiRegistryKey() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let prefix = home.appendingPathComponent("prefix")
+        try FileManager.default.createDirectory(at: prefix, withIntermediateDirectories: true)
+        let reg = prefix.appendingPathComponent("user.reg")
+
+        #expect(!SteamServices.isSignedIn(prefix: prefix))
+
+        try #"""
+        [Software\\Valve\\Steam\\ActiveProcess] 1757100000
+        "ActiveUser"=dword:00000000
+        "pid"=dword:0000002a
+
+        [Software\\Valve\\Steam\\Other] 1757100000
+        "ActiveUser"=dword:0000beef
+        """#.write(to: reg, atomically: true, encoding: .utf8)
+        #expect(SteamServices.activeUser(prefix: prefix) == 0)
+
+        try #"""
+        [Software\\Valve\\Steam\\ActiveProcess] 1757100000
+        "ActiveUser"=dword:0abc1234
+        "pid"=dword:0000002a
+        """#.write(to: reg, atomically: true, encoding: .utf8)
+        #expect(SteamServices.activeUser(prefix: prefix) == 0x0abc_1234)
+        #expect(SteamServices.isSignedIn(prefix: prefix))
+    }
+
+    @Test
+    func credentialsRoundTripThroughTheLocalStore() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let paths = RuntimePaths(root: home)
+
+        #expect(SteamCredentialStore.load(paths: paths) == nil)
+        SteamCredentialStore.save(user: " player ", password: "secret", guardCode: "ABCDE", paths: paths)
+        let loaded = SteamCredentialStore.load(paths: paths)
+        #expect(loaded == SteamCredentials(user: "player", password: "secret", guardCode: "ABCDE"))
+
+        let mode = try FileManager.default.attributesOfItem(
+            atPath: SteamCredentialStore.fileURL(paths: paths).path
+        )[.posixPermissions] as? Int
+        #expect(mode == 0o600)
+
+        SteamCredentialStore.save(user: "", password: "secret", guardCode: "", paths: paths)
+        #expect(SteamCredentialStore.load(paths: paths)?.user == "player")
+
+        SteamCredentialStore.delete(paths: paths)
+        #expect(SteamCredentialStore.load(paths: paths) == nil)
     }
 
     @Test
