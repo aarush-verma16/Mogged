@@ -157,6 +157,9 @@ public final class DepotInstaller: @unchecked Sendable {
         guard !user.isEmpty, !pass.isEmpty else {
             throw MoggedError.installNeedsAccount
         }
+        if user.contains("@") {
+            throw MoggedError.installFailed("Use your Steam account name, not email.")
+        }
         if isRunning {
             throw MoggedError.alreadyInstalling(profile.id)
         }
@@ -244,6 +247,7 @@ public final class DepotInstaller: @unchecked Sendable {
             let ok = finished.terminationStatus == 0
             let exe = self.locator.findExecutable(in: dest, names: profile.executables)
             let found = exe != nil
+            let login = Self.loginResult(from: self.current().log)
             self.apply { snap in
                 snap.running = false
                 if ok && found {
@@ -252,6 +256,11 @@ public final class DepotInstaller: @unchecked Sendable {
                     snap.fraction = 1
                     snap.line = exe?.path ?? dest.path
                     snap.error = nil
+                } else if login.isAuthFailure {
+                    snap.succeeded = false
+                    snap.phase = "Failed"
+                    snap.line = login.message
+                    snap.error = login.message
                 } else {
                     snap.succeeded = false
                     snap.phase = "Failed"
@@ -282,6 +291,9 @@ public final class DepotInstaller: @unchecked Sendable {
         let pass = password.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !user.isEmpty, !pass.isEmpty else {
             throw MoggedError.installNeedsAccount
+        }
+        if user.contains("@") {
+            throw MoggedError.installFailed("Use your Steam account name, not email.")
         }
         if isRunning {
             throw MoggedError.alreadyInstalling("steam-login")
@@ -343,14 +355,13 @@ public final class DepotInstaller: @unchecked Sendable {
         proc.terminationHandler = { [weak self] _ in
             pipe.fileHandleForReading.readabilityHandler = nil
             guard let self else { return }
-            let log = self.current().log
-            let hint = Self.guardHint(from: log)
+            let result = Self.loginResult(from: self.current().log)
             self.apply { snap in
                 snap.running = false
-                snap.succeeded = false
-                snap.phase = "Guard"
-                snap.line = hint
-                snap.error = hint
+                snap.succeeded = result == .signedIn
+                snap.phase = result.phase
+                snap.line = result.message
+                snap.error = result == .signedIn ? nil : result.message
             }
             onExit(self.current())
         }
@@ -367,17 +378,93 @@ public final class DepotInstaller: @unchecked Sendable {
     }
 
     public static func guardHint(from log: String) -> String {
+        loginResult(from: log).message
+    }
+
+    public enum LoginResult: Equatable {
+        case signedIn
+        case needsGuard(String)
+        case badUser
+        case badPassword
+        case badGuard
+        case rateLimited
+        case failed(String)
+
+        public var message: String {
+            switch self {
+            case .signedIn:
+                return "Signed in. Leave guard empty and click Install."
+            case .needsGuard(let text):
+                return text
+            case .badUser:
+                return "Steam account name is wrong. Use the account name, not email."
+            case .badPassword:
+                return "Wrong Steam password."
+            case .badGuard:
+                return "Guard code is wrong or expired. Click Get code and paste a new one."
+            case .rateLimited:
+                return "Steam blocked this login for a bit. Wait, then try again."
+            case .failed(let text):
+                return text
+            }
+        }
+
+        public var phase: String {
+            switch self {
+            case .signedIn: return "Ready"
+            case .needsGuard: return "Guard"
+            default: return "Failed"
+            }
+        }
+
+        public var isAuthFailure: Bool {
+            switch self {
+            case .badUser, .badPassword, .badGuard, .rateLimited, .failed: return true
+            default: return false
+            }
+        }
+    }
+
+    public static func loginResult(from log: String) -> LoginResult {
         let line = log.lowercased()
-        if line.contains("logged in ok") || line.contains("waiting for user info") && !line.contains("failed") {
-            return "Signed in. Leave guard empty and click Install."
+        if line.contains("invalid password")
+            || line.contains("invalidpassword")
+            || line.contains("password is not valid")
+        {
+            return .badPassword
+        }
+        if line.contains("account not found")
+            || line.contains("accountnotfound")
+            || line.contains("invalid user")
+            || line.contains("unknown account")
+            || line.contains("name not found")
+            || line.contains("no such account")
+        {
+            return .badUser
+        }
+        if line.contains("invalidloginauthcode")
+            || line.contains("twofactor code mismatch")
+            || line.contains("expired") && line.contains("code")
+            || line.contains("invalid auth")
+        {
+            return .badGuard
+        }
+        if line.contains("rate limit") || line.contains("limit exceeded") {
+            return .rateLimited
+        }
+        if line.contains("logged in ok") || (line.contains("waiting for user info") && !line.contains("failed")) {
+            return .signedIn
         }
         if line.contains("two-factor") || line.contains("authenticator") || line.contains("mobile authenticator") {
-            return "Open the Steam phone app, copy the Guard code, paste it here, then Install."
+            return .needsGuard("Open the Steam phone app, copy the Guard code, paste it here, then Install.")
         }
         if line.contains("email") || line.contains("steam guard") || line.contains("guard code") {
-            return "Steam sent a code to your email. Paste it in guard, then Install."
+            return .needsGuard("Steam sent a code to your email. Paste it in guard, then Install.")
         }
-        return "Open the Steam app or your email for a Guard code. Paste it, then Install."
+        if line.contains("login failure") || line.contains("failed login") || line.contains("failed. login") {
+            return .failed("Steam login failed. Check account name and password.")
+        }
+        return .needsGuard("Open the Steam app or your email for a Guard code. Paste it, then Install.")
     }
 
     private func awaitableSteamcmdPresent() throws {

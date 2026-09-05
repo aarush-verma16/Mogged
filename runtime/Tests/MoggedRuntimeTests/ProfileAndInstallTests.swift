@@ -116,3 +116,13 @@ func guardHintPointsAtSteamAppOrEmail() {
     let app = DepotInstaller.guardHint(from: "Mobile authenticator two-factor code required")
     #expect(app.lowercased().contains("steam"))
 }
+
+@Test
+func loginResultFlagsBadPasswordAndUser() {
+    #expect(DepotInstaller.loginResult(from: "FAILED. Login Failure: Invalid Password") == .badPassword)
+    #expect(DepotInstaller.loginResult(from: "FAILED (InvalidPassword)") == .badPassword)
+    #expect(DepotInstaller.loginResult(from: "Account not found") == .badUser)
+    #expect(DepotInstaller.loginResult(from: "FAILED (AccountNotFound)") == .badUser)
+    #expect(DepotInstaller.loginResult(from: "FAILED login with result code Rate Limit Exceeded") == .rateLimited)
+    #expect(DepotInstaller.loginResult(from: "Logged in OK") == .signedIn)
+}
