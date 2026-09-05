@@ -93,3 +93,18 @@ func parsesSteamCmdProgress() {
     let verify = DepotProgress.parse("Update state (0x81) verifying installed files, progress: 55.00 (x / y)")
     #expect(verify?.phase == "Updating")
 }
+
+@Test
+func errorFeedKeepsFailuresOnly() {
+    let text = """
+    launch.started
+    Update state downloading, progress: 12.45
+    install.failed: login denied
+    launch.failed code=1
+    ok
+    """
+    let lines = ErrorFeed.lines(from: text)
+    #expect(lines.contains(where: { $0.contains("install.failed") }))
+    #expect(lines.contains(where: { $0.contains("launch.failed") }))
+    #expect(!lines.contains(where: { $0.contains("progress") }))
+}

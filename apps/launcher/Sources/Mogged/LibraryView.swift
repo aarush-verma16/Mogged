@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import MoggedRuntime
 
@@ -41,6 +42,9 @@ struct LibraryView: View {
             }
             if let pid = model.session?.pid {
                 MonoStat(label: "pid", value: "\(pid)", ok: true)
+            }
+            if let err = model.lastError {
+                MonoStat(label: "err", value: err, ok: false)
             }
         }
         .padding(.horizontal, Theme.Space.x3)
@@ -124,12 +128,26 @@ struct LibraryView: View {
                 .padding(Theme.Space.x3)
 
                 if let banner = model.banner {
-                    Text(banner)
-                        .font(Theme.mono(11))
-                        .foregroundStyle(Theme.warning)
-                        .textSelection(.enabled)
-                        .padding(.horizontal, Theme.Space.x3)
-                        .padding(.bottom, Theme.Space.x2)
+                    HStack(alignment: .top, spacing: Theme.Space.x2) {
+                        Text(banner)
+                            .font(Theme.mono(11))
+                            .foregroundStyle(Theme.error)
+                            .textSelection(.enabled)
+                        Spacer(minLength: 0)
+                        Button("copy") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(banner, forType: .string)
+                        }
+                        .buttonStyle(.plain)
+                        .font(Theme.mono(10))
+                        .foregroundStyle(Theme.muted)
+                        Button("ok") { model.clearError() }
+                            .buttonStyle(.plain)
+                            .font(Theme.mono(10))
+                            .foregroundStyle(Theme.muted)
+                    }
+                    .padding(.horizontal, Theme.Space.x3)
+                    .padding(.bottom, Theme.Space.x2)
                 }
 
                 accountBar
@@ -160,7 +178,7 @@ struct LibraryView: View {
                         section("process")
                         KV("pid", model.session?.pid.map(String.init) ?? "—")
                         KV("running", model.session?.running == true ? "yes" : "no")
-                        KV("exit", model.session?.lastExit.map(String.init) ?? "—")
+                        KV("exit", exitLabel)
 
                         section("host")
                         KV("wine", model.runtime.wine ?? "—")
@@ -208,39 +226,64 @@ struct LibraryView: View {
     }
 
     private var logs: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            logPane(title: "runtime.jsonl", body: model.runtimeLog)
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Theme.Space.x2) {
+                ForEach(AppModel.LogTab.allCases) { tab in
+                    Button(tab.rawValue) { model.logTab = tab }
+                        .buttonStyle(.plain)
+                        .font(Theme.mono(10, weight: model.logTab == tab ? .medium : .regular))
+                        .foregroundStyle(model.logTab == tab ? Theme.ink : Theme.muted)
+                }
+                Spacer()
+                Button("copy") { model.copyVisibleLog() }
+                    .buttonStyle(.plain)
+                    .font(Theme.mono(10))
+                    .foregroundStyle(Theme.muted)
+            }
+            .padding(.horizontal, Theme.Space.x2)
+            .padding(.vertical, Theme.Space.x2)
             hairline
-            logPane(title: logTitle, body: model.gameLog)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    logBody
+                        .id("log-end")
+                        .padding(.horizontal, Theme.Space.x2)
+                        .padding(.bottom, Theme.Space.x2)
+                }
+                .onChange(of: visibleLog) { _, _ in
+                    proxy.scrollTo("log-end", anchor: .bottom)
+                }
+            }
         }
-        .frame(width: 380)
+        .frame(width: 400)
         .background(Theme.surface)
     }
 
-    private func logPane(title: String, body: String) -> some View {
-        VStack(alignment: .leading, spacing: Theme.Space.x1) {
-            Text(title)
-                .font(Theme.mono(10, weight: .medium))
-                .foregroundStyle(Theme.muted)
-                .padding(.horizontal, Theme.Space.x2)
-                .padding(.top, Theme.Space.x2)
-            ScrollView {
-                Text(body.isEmpty ? "—" : body)
-                    .font(Theme.mono(10))
-                    .foregroundStyle(Theme.body)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Theme.Space.x2)
-                    .padding(.bottom, Theme.Space.x2)
-            }
+    private var visibleLog: String {
+        switch model.logTab {
+        case .errors: return model.errorLog
+        case .events: return model.runtimeLog
+        case .title: return model.gameLog
         }
     }
 
-    private var logTitle: String {
-        if let inst = model.install, inst.titleId == model.selectedId, inst.running || !(model.selected?.canPlay ?? false) {
-            return "install-\(inst.titleId).log"
-        }
-        return model.selected.map { "\($0.id).log" } ?? "game.log"
+    private var exitLabel: String {
+        guard let code = model.session?.lastExit else { return "—" }
+        return code == 0 ? "0" : "\(code) · failed"
+    }
+
+    private var logBody: some View {
+        let text = visibleLog
+        return Text(text.isEmpty ? emptyLog : text)
+            .font(Theme.mono(10))
+            .foregroundStyle(text.isEmpty ? Theme.muted : (model.logTab == .errors ? Theme.error : Theme.body))
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var emptyLog: String {
+        model.logTab == .errors ? "no errors yet — Install / Play land here" : "—"
     }
 
     @ViewBuilder
@@ -287,6 +330,7 @@ struct LibraryView: View {
         KV("bytes", (active ? inst?.bytes : nil) ?? "—")
         KV("line", (active ? inst?.line : nil) ?? "—")
         KV("dest", (active ? inst?.path : nil) ?? "—")
+        KV("error", (active ? inst?.error : nil) ?? model.lastError ?? "—")
         if active, inst?.running == true {
             ProgressView(value: inst?.fraction ?? 0)
                 .tint(Theme.blue)

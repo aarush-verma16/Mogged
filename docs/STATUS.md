@@ -13,7 +13,7 @@ Done:
 - Repo, docs, rules, profiles.
 - Desktop-app identity (ADR-006).
 - `dev` / `main` workflow.
-- Native SwiftUI **operator** console: Install, Play, Stop, Locate, live %, logs, optimization. First title = Aperture Desk Job. Apex and Rivals stay pinned and heavy.
+- Native SwiftUI **operator** console: Install, Play, Stop, Locate, live %, **errors / events / title logs in-app** (copy, persist last error). First title = Aperture Desk Job.
 - Runtime tests cover profile decode, user-facing copy, install lookup, launch/stop through a fake Wine, and thermal FPS caps.
 - `RuntimeSupervisor.launch` creates a per-title environment, execs Wine, tracks PID, writes JSONL, Stop kills the process.
 - Optimization layer: thermal → FPS cap (60/40/30), FSR Quality, RT off (ADR-011). v1 is **this Mac**.

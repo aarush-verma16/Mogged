@@ -19,12 +19,24 @@ final class AppModel {
     var runtimeLog = ""
     var gameLog = ""
     var install: InstallSnapshot?
+    var lastError: String?
+    var errorLog = ""
+    var logTab: LogTab = .errors
     var steamUser = UserDefaults.standard.string(forKey: "mogged.steamUser") ?? ""
     var steamPassword = ""
     var steamGuard = ""
 
+    enum LogTab: String, CaseIterable, Identifiable {
+        case errors
+        case events
+        case title
+        var id: String { rawValue }
+    }
+
     private let supervisor = RuntimeSupervisor()
     private var pollTask: Task<Void, Never>?
+    private var seenExit: [String: Int32] = [:]
+    private var seenInstallError: String?
 
     var selected: LibraryEntry? {
         visible.first { $0.id == selectedId } ?? entries.first { $0.id == selectedId } ?? visible.first
@@ -64,12 +76,27 @@ final class AppModel {
             if let install, install.titleId == selectedId, install.running || !(selected?.canPlay ?? false) {
                 if !install.log.isEmpty { gameLog = install.log }
             }
+            if let install, let err = install.error, !install.running, seenInstallError != err {
+                seenInstallError = err
+                rememberError(err)
+            }
+            if let session, let code = session.lastExit, code != 0, session.running == false,
+               seenExit[session.titleId] != code
+            {
+                seenExit[session.titleId] = code
+                rememberError("\(session.titleId) exited \(code)")
+            }
+            errorLog = ErrorFeed.digest(
+                runtimeLog: runtimeLog,
+                titleLog: gameLog,
+                extra: [lastError, install?.error].compactMap { $0 }
+            )
         } catch let error as MoggedError {
             loadFailed = true
-            banner = error.logDescription
+            rememberError(error.logDescription)
         } catch {
             loadFailed = true
-            banner = String(describing: error)
+            rememberError(String(describing: error))
         }
     }
 
@@ -81,10 +108,10 @@ final class AppModel {
             _ = try await supervisor.launch(profile: entry.profile)
             await refresh()
         } catch let error as MoggedError {
-            banner = error.userMessage
+            rememberError(error.userMessage)
             await refresh()
         } catch {
-            banner = String(describing: error)
+            rememberError(String(describing: error))
         }
     }
 
@@ -94,9 +121,9 @@ final class AppModel {
             try await supervisor.stop(titleId: entry.id)
             await refresh()
         } catch let error as MoggedError {
-            banner = error.logDescription
+            rememberError(error.userMessage)
         } catch {
-            banner = String(describing: error)
+            rememberError(String(describing: error))
         }
     }
 
@@ -114,10 +141,10 @@ final class AppModel {
             )
             await refresh()
         } catch let error as MoggedError {
-            banner = error.userMessage
+            rememberError(error.userMessage)
             await refresh()
         } catch {
-            banner = String(describing: error)
+            rememberError(String(describing: error))
         }
     }
 
@@ -134,15 +161,41 @@ final class AppModel {
             await refresh()
             selectedId = entry.id
         } catch {
-            banner = String(describing: error)
+            rememberError(String(describing: error))
         }
+    }
+
+    func clearError() {
+        banner = nil
+        lastError = nil
+    }
+
+    func copyVisibleLog() {
+        let text: String
+        switch logTab {
+        case .errors: text = errorLog
+        case .events: text = runtimeLog
+        case .title: text = gameLog
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text.isEmpty ? "—" : text, forType: .string)
+    }
+
+    func rememberError(_ message: String) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        banner = trimmed
+        if lastError == trimmed { return }
+        lastError = trimmed
+        logTab = .errors
     }
 
     private func startPolling() {
         pollTask?.cancel()
         pollTask = Task {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
+                let hot = !runningIds.isEmpty || install?.running == true
+                try? await Task.sleep(for: .milliseconds(hot ? 400 : 1000))
                 await refresh()
             }
         }

@@ -226,7 +226,8 @@ public actor RuntimeSupervisor {
     private func noteExit(titleId: String, code: Int32) {
         running.removeValue(forKey: titleId)
         lastExit[titleId] = code
-        telemetry.record(TelemetryEvent(event: "launch.exited", titleId: titleId, detail: "code=\(code)"))
+        let event = code == 0 ? "launch.exited" : "launch.failed"
+        telemetry.record(TelemetryEvent(event: event, titleId: titleId, detail: "code=\(code)"))
     }
 
     public func inspectRuntime() -> RuntimeInspect {
