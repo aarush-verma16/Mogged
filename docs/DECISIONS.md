@@ -6,6 +6,13 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-014 — Games run in a real Mac window by default
+
+- **Status:** accepted
+- **Decision:** Every title launches **windowed** in a normal macOS window with a title bar and traffic lights, sized by `launch.window` in `profiles/*.json` (default 1600×900). The runtime gets this by hosting the game in a Wine desktop and setting the Mac driver's `Decorated` key once per environment; a title can opt out with `"mode": "fullscreen"`.
+- **Why:** A borderless full-screen grab has no close button, hides the launcher, and makes a hung title look like a frozen Mac. Close, minimize, and Cmd-Tab must behave the way they do for any Mac app.
+- **Cost:** Composited output instead of a direct full-screen surface. Measure before treating this as the cause of any FPS gap.
+
 ## ADR-013 — Steam runs inside the title environment when a game needs SteamAPI
 
 - **Status:** accepted

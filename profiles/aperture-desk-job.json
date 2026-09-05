@@ -14,8 +14,13 @@
   },
   "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
   "launch": {
-    "args": ["-game", "steampal", "-novr", "-hushsteam"],
+    "args": ["-game", "steampal", "-novr", "-hushsteam", "-windowed", "-w", "1600", "-h", "900"],
     "workingDirectory": "game",
+    "window": {
+      "mode": "windowed",
+      "width": 1600,
+      "height": 900
+    },
     "env": {
       "SteamDeck": "0",
       "SteamAppId": "1902490",

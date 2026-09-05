@@ -46,7 +46,7 @@ struct LaunchPathTests {
             thermal: .nominal
         )
         #expect(plan.executable.path == "/opt/homebrew/bin/wine64")
-        #expect(plan.arguments.first == exe.path)
+        #expect(plan.arguments.contains(exe.path))
         #expect(plan.environment["WINEPREFIX"] == prefix.path)
         #expect(plan.environment["DXVK_STATE_CACHE_PATH"] == cache.path)
         #expect(plan.environment["DXVK_FRAME_RATE"] == "60")
@@ -66,6 +66,51 @@ struct LaunchPathTests {
 
         let apex = try smokeProfile()
         #expect(apex.settings?.needsSteamClient == false)
+    }
+
+    @Test
+    func windowedTitleRunsInsideADecoratedDesktop() throws {
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        #expect(profile.launch?.window?.isWindowed == true)
+
+        let exe = URL(fileURLWithPath: "/tmp/deskjob.exe")
+        let args = BackendLauncher.arguments(profile: profile, exe: exe)
+        #expect(args.first == "explorer")
+        #expect(args[1] == "/desktop=mogged-aperture-desk-job,1600x900")
+        #expect(args[2] == exe.path)
+        #expect(args.contains("-windowed"))
+
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let decorate = BackendLauncher(paths: RuntimePaths(root: home)).windowDecorationPlan(
+            prefix: home.appendingPathComponent("prefix"),
+            config: BackendConfig(wine: "/opt/homebrew/bin/wine64"),
+            value: "Y"
+        )
+        #expect(decorate.arguments.first == "reg")
+        #expect(decorate.arguments.contains("Decorated"))
+        #expect(decorate.arguments.contains("Y"))
+    }
+
+    @Test
+    func fullscreenTitleSkipsTheWineDesktop() throws {
+        let profile = try decodeProfile("""
+        {
+          "id": "fullscreen-test",
+          "steamAppId": 2,
+          "displayName": "Fullscreen",
+          "role": "smoke",
+          "engine": "test",
+          "graphicsApi": "d3d11",
+          "antiCheat": "none",
+          "macNative": false,
+          "backend": { "preferred": "dxvk-moltenvk" },
+          "executables": ["game.exe"],
+          "launch": { "window": { "mode": "fullscreen" } }
+        }
+        """)
+        let exe = URL(fileURLWithPath: "/tmp/game.exe")
+        #expect(BackendLauncher.arguments(profile: profile, exe: exe) == [exe.path])
     }
 
     @Test
@@ -254,6 +299,9 @@ private func writeFakeWine(in dir: URL, hold: Bool) throws -> URL {
     if [ "$1" = "wineboot" ]; then
       mkdir -p "$WINEPREFIX"
       touch "$WINEPREFIX/system.reg"
+      exit 0
+    fi
+    if [ "$1" = "reg" ]; then
       exit 0
     fi
     \(holdLine)

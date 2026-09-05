@@ -79,7 +79,7 @@ public struct BackendLauncher: Sendable {
 
         return LaunchPlan(
             executable: config.wineURL,
-            arguments: [exe.path] + (profile.launch?.args ?? []),
+            arguments: Self.arguments(profile: profile, exe: exe),
             environment: env,
             workingDirectory: Self.workingDirectory(
                 profile: profile,
@@ -88,6 +88,16 @@ public struct BackendLauncher: Sendable {
             ),
             logURL: paths.logs.appendingPathComponent("\(profile.id).log")
         )
+    }
+
+    /// Windowed titles run inside a Wine desktop, which the Mac driver draws as one
+    /// real window: title bar, traffic lights, drag, resize.
+    public static func arguments(profile: TitleProfile, exe: URL) -> [String] {
+        let game = [exe.path] + (profile.launch?.args ?? [])
+        let window = profile.launch?.window
+        guard window?.isWindowed ?? true else { return game }
+        let size = window?.size ?? "1600x900"
+        return ["explorer", "/desktop=mogged-\(profile.id),\(size)"] + game
     }
 
     public static func workingDirectory(
@@ -123,6 +133,23 @@ public struct BackendLauncher: Sendable {
 
         """
         try? body.write(to: inf, atomically: true, encoding: .utf8)
+    }
+
+    /// Mac driver keys that give the game window a native frame with traffic lights.
+    public func windowDecorationPlan(prefix: URL, config: BackendConfig, value: String) -> LaunchPlan {
+        LaunchPlan(
+            executable: config.wineURL,
+            arguments: [
+                "reg", "add", #"HKEY_CURRENT_USER\Software\Wine\Mac Driver"#,
+                "/v", "Decorated", "/t", "REG_SZ", "/d", value, "/f",
+            ],
+            environment: [
+                "WINEPREFIX": prefix.path,
+                "WINEDEBUG": "-all",
+            ],
+            workingDirectory: prefix,
+            logURL: paths.logs.appendingPathComponent("wineboot.log")
+        )
     }
 
     public func winebootPlan(prefix: URL, config: BackendConfig) -> LaunchPlan {

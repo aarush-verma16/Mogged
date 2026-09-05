@@ -164,6 +164,7 @@ struct LibraryView: View {
                         KV("ready", entry.canPlay ? "yes" : "no")
                         KV("safe", entry.profile.settings?.isSafeBoot == true ? "yes · first boot" : "heavy")
                         KV("steaminput", steamInputLabel(entry))
+                        KV("window", windowLabel(entry))
                         KV("disk", "\(entry.profile.settings?.requiredFreeGB ?? 80) GB budget")
 
                         installSection(entry)
@@ -327,6 +328,12 @@ struct LibraryView: View {
         .onChange(of: model.steamUser) { _, _ in model.saveCredentials() }
         .onChange(of: model.steamPassword) { _, _ in model.saveCredentials() }
         .onChange(of: model.steamGuard) { _, _ in model.saveCredentials() }
+    }
+
+    private func windowLabel(_ entry: LibraryEntry) -> String {
+        let window = entry.profile.launch?.window
+        guard window?.isWindowed ?? true else { return "fullscreen" }
+        return "\(window?.size ?? "1600x900") · titlebar"
     }
 
     private func steamInputLabel(_ entry: LibraryEntry) -> String {

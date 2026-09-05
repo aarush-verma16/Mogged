@@ -228,6 +228,23 @@ public actor RuntimeSupervisor {
         return probe.isAvailable
     }
 
+    /// Written once per environment so Play does not pay for a `reg add` every time.
+    private func applyWindowDecoration(prefix: URL, profile: TitleProfile, config: BackendConfig) {
+        let windowed = profile.launch?.window?.isWindowed ?? true
+        let want = windowed ? "Y" : "N"
+        let marker = prefix.appendingPathComponent(".mogged-window")
+        if (try? String(contentsOf: marker, encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines) == want
+        {
+            return
+        }
+
+        let plan = launcher.windowDecorationPlan(prefix: prefix, config: config, value: want)
+        guard let handle = try? ProcessHandle.spawn(plan) else { return }
+        _ = handle.waitUntilExit(timeout: 30)
+        try? want.write(to: marker, atomically: true, encoding: .utf8)
+    }
+
     /// Steam Input and SteamAPI_Init only work with Steam running in the same prefix.
     private func startSteamServicesIfNeeded(profile: TitleProfile, prefix: URL, config: BackendConfig) {
         guard profile.settings?.needsSteamClient == true else { return }
@@ -292,6 +309,7 @@ public actor RuntimeSupervisor {
             }
             try? environment.markReady(prefix: prefix)
         }
+        applyWindowDecoration(prefix: prefix, profile: profile, config: config)
         launcher.overlayTranslationDLLs(prefix: prefix, profile: profile, config: config)
     }
 

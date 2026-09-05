@@ -19,6 +19,7 @@ Done:
 - Optimization layer: thermal → FPS cap (60/40/30), FSR Quality, RT off (ADR-011). v1 is **this Mac**.
 - Translation engine is on disk and probed: Gcenx Wine Staging **11.16** ran `cmd.exe` (`mogged-ok`). MoltenVK sees **Apple M4 Pro**. DXVK-macOS `d3d11.dll` + `d3d10core.dll` in `third_party/dxvk/x64`.
 - **Aperture Desk Job boots and draws.** 2026-09-05: `launch.exited code=0` after ~47s. DXVK 1.10.3 created a D3D11 device on M4 Pro; MoltenVK made a 1800×1169 `CAMetalLayer` swapchain. Path to that: DXVK staged in `engine/dxvk` and copied into the prefix, `game` as working directory with `-game steampal`, generated `steam.inf`, and Wine’s MoltenVK **JSON ICD** (a raw dylib in `VK_ICD_FILENAMES` lost `VK_KHR_surface` → exit 5).
+- Titles run in a real Mac window with traffic lights: hosted in a Wine desktop sized by `launch.window`, Mac driver `Decorated=Y` written once per environment (ADR-014).
 
 Not done:
 

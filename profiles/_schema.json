@@ -51,6 +51,15 @@
         "workingDirectory": {
           "type": "string",
           "description": "Relative to the install root. Source 2 uses game, not the exe folder."
+        },
+        "window": {
+          "type": "object",
+          "description": "Windowed titles get a native Mac frame with traffic lights",
+          "properties": {
+            "mode": { "enum": ["windowed", "fullscreen"] },
+            "width": { "type": "integer" },
+            "height": { "type": "integer" }
+          }
         }
       }
     },

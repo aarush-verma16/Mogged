@@ -44,6 +44,20 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
         public let env: [String: String]?
         /// Folder relative to the install root. Source 2 needs `game`, not `bin/win64`.
         public let workingDirectory: String?
+        public let window: Window?
+    }
+
+    /// How the game's window sits on the Mac desktop.
+    public struct Window: Codable, Sendable, Equatable {
+        public let mode: String?
+        public let width: Int?
+        public let height: Int?
+
+        /// Windowed by default: a borderless full-screen grab has no traffic lights.
+        public var isWindowed: Bool { (mode ?? "windowed").lowercased() != "fullscreen" }
+        public var pixelWidth: Int { max(width ?? 1600, 640) }
+        public var pixelHeight: Int { max(height ?? 900, 480) }
+        public var size: String { "\(pixelWidth)x\(pixelHeight)" }
     }
 
     public struct Settings: Codable, Sendable, Equatable {
