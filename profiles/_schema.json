@@ -47,7 +47,11 @@
       "type": "object",
       "properties": {
         "args": { "type": "array", "items": { "type": "string" } },
-        "env": { "type": "object", "additionalProperties": { "type": "string" } }
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "workingDirectory": {
+          "type": "string",
+          "description": "Relative to the install root. Source 2 uses game, not the exe folder."
+        }
       }
     },
     "settings": {

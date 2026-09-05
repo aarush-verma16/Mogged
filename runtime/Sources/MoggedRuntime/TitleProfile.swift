@@ -42,6 +42,8 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
     public struct Launch: Codable, Sendable, Equatable {
         public let args: [String]?
         public let env: [String: String]?
+        /// Folder relative to the install root. Source 2 needs `game`, not `bin/win64`.
+        public let workingDirectory: String?
     }
 
     public struct Settings: Codable, Sendable, Equatable {

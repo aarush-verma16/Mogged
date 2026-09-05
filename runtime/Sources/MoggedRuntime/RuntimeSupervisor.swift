@@ -169,12 +169,14 @@ public actor RuntimeSupervisor {
 
         preparePrefix(prefix: trees.prefix, profile: profile, config: config)
 
+        BackendLauncher.ensureSteamInf(installRoot: install.path, profile: profile)
         let plan = launcher.plan(
             profile: profile,
             exe: exe,
             prefix: trees.prefix,
             cache: trees.cache,
-            config: config
+            config: config,
+            installRoot: install.path
         )
 
         let titleId = profile.id
@@ -269,7 +271,8 @@ public actor RuntimeSupervisor {
                 exe: $0,
                 prefix: trees.prefix,
                 cache: trees.cache,
-                config: configStore.load() ?? BackendConfig(wine: probe.wineBinary() ?? "")
+                config: configStore.load() ?? BackendConfig(wine: probe.wineBinary() ?? ""),
+                installRoot: install?.path
             )
         }
         let handle = running[profile.id]

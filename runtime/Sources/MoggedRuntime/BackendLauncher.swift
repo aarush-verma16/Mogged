@@ -38,6 +38,7 @@ public struct BackendLauncher: Sendable {
         prefix: URL,
         cache: URL,
         config: BackendConfig,
+        installRoot: URL? = nil,
         thermal: ProcessInfo.ThermalState = ProcessInfo.processInfo.thermalState
     ) -> LaunchPlan {
         let stack = graphicsStack(for: profile)
@@ -47,6 +48,8 @@ public struct BackendLauncher: Sendable {
             "DXVK_STATE_CACHE": "1",
             "DXVK_STATE_CACHE_PATH": cache.path,
             "DXVK_LOG_PATH": paths.logs.path,
+            "SteamAppId": "\(profile.steamAppId)",
+            "SteamGameId": "\(profile.steamAppId)",
         ]
 
         let policy = OptimizationLayer().policy(for: profile, thermal: thermal)
@@ -72,9 +75,48 @@ public struct BackendLauncher: Sendable {
             executable: config.wineURL,
             arguments: [exe.path] + (profile.launch?.args ?? []),
             environment: env,
-            workingDirectory: exe.deletingLastPathComponent(),
+            workingDirectory: Self.workingDirectory(
+                profile: profile,
+                exe: exe,
+                installRoot: installRoot
+            ),
             logURL: paths.logs.appendingPathComponent("\(profile.id).log")
         )
+    }
+
+    public static func workingDirectory(
+        profile: TitleProfile,
+        exe: URL,
+        installRoot: URL?
+    ) -> URL {
+        let rel = profile.launch?.workingDirectory?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !rel.isEmpty, let installRoot else {
+            return exe.deletingLastPathComponent()
+        }
+        let dest = installRoot.appendingPathComponent(rel, isDirectory: true)
+        return FileManager.default.fileExists(atPath: dest.path) ? dest : exe.deletingLastPathComponent()
+    }
+
+    /// Source 2 looks for steam.inf next to gameinfo. Steam writes it; SteamCMD often does not.
+    public static func ensureSteamInf(installRoot: URL, profile: TitleProfile) {
+        guard let args = profile.launch?.args,
+              let index = args.firstIndex(of: "-game"),
+              args.index(after: index) < args.endIndex
+        else { return }
+        let mod = args[args.index(after: index)]
+        let base = workingDirectory(profile: profile, exe: installRoot, installRoot: installRoot)
+        let folder = base.appendingPathComponent(mod, isDirectory: true)
+        let inf = folder.appendingPathComponent("steam.inf")
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: folder.path), !fm.fileExists(atPath: inf.path) else { return }
+        let body = """
+        ClientVersion=0
+        ServerVersion=0
+        ProductName=\(mod)
+        appID=\(profile.steamAppId)
+
+        """
+        try? body.write(to: inf, atomically: true, encoding: .utf8)
     }
 
     public func winebootPlan(prefix: URL, config: BackendConfig) -> LaunchPlan {

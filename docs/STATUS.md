@@ -21,7 +21,7 @@ Done:
 
 Not done:
 
-- No game files on disk yet. Install Aperture Desk Job first (~3 GB). Apex / Rivals stay listed but are heavy.
+- Aperture Desk Job is on disk under Application Support/Mogged/games. First Play died on Wine D3D11 feature level 9.5; launch now uses DXVK + `game/steampal`. Apex / Rivals stay listed but are heavy.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
 - No game has drawn pixels. No FPS number. Do not claim smoothness.
@@ -74,7 +74,7 @@ macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. E
 
 | Role | Title | State |
 | --- | --- | --- |
-| First (safe) | Aperture Desk Job (`1902490`) | **smoke**; ~3 GB; no AC; not on disk |
+| First (safe) | Aperture Desk Job (`1902490`) | **smoke**; installed; Play boot in progress |
 | Next | Apex Legends (`1172470`) | pinned; heavy; not on disk |
 | Then | Marvel Rivals (`2767030`) | pinned; heavy; not on disk |
 | Later | Spider-Man Remastered (`1817070`) | profile exists; **not in the library until M2 / Steam has it** |

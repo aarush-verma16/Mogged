@@ -55,6 +55,37 @@ struct LaunchPathTests {
     }
 
     @Test
+    func deskJobLaunchesFromGameFolderWithDXVK() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let install = home.appendingPathComponent("games/aperture-desk-job")
+        let game = install.appendingPathComponent("game/steampal")
+        try FileManager.default.createDirectory(at: game, withIntermediateDirectories: true)
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        let exe = install.appendingPathComponent("game/bin/win64/deskjob.exe")
+        let plan = BackendLauncher(paths: RuntimePaths(root: home)).plan(
+            profile: profile,
+            exe: exe,
+            prefix: home.appendingPathComponent("prefix"),
+            cache: home.appendingPathComponent("cache"),
+            config: BackendConfig(wine: "/opt/homebrew/bin/wine64"),
+            installRoot: install,
+            thermal: .nominal
+        )
+        #expect(plan.arguments.contains("-game"))
+        #expect(plan.arguments.contains("steampal"))
+        #expect(plan.workingDirectory.lastPathComponent == "game")
+        #expect(plan.environment["WINEDLLOVERRIDES"] == "d3d11,d3d10core=n,b")
+        #expect(plan.environment["SteamAppId"] == "1902490")
+
+        BackendLauncher.ensureSteamInf(installRoot: install, profile: profile)
+        let inf = game.appendingPathComponent("steam.inf")
+        let text = try String(contentsOf: inf, encoding: .utf8)
+        #expect(text.contains("appID=1902490"))
+        #expect(text.contains("steampal"))
+    }
+
+    @Test
     func optimizationCapsWhenHot() throws {
         let profile = try smokeProfile()
         let hot = OptimizationLayer().policy(for: profile, thermal: .serious)

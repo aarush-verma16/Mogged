@@ -9,14 +9,17 @@
   "antiCheat": "none",
   "macNative": false,
   "backend": {
-    "preferred": "moltenvk",
-    "fallback": "dxvk-moltenvk"
+    "preferred": "dxvk-moltenvk",
+    "fallback": "moltenvk"
   },
   "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
   "launch": {
-    "args": [],
+    "args": ["-game", "steampal"],
+    "workingDirectory": "game",
     "env": {
-      "SteamDeck": "0"
+      "SteamDeck": "0",
+      "SteamAppId": "1902490",
+      "SteamGameId": "1902490"
     }
   },
   "controllerRequired": true,
@@ -33,7 +36,8 @@
   },
   "knownIssues": [
     "Wants a controller. Boot and the first screen are enough for smoke.",
-    "Vulkan/Source 2 — not the D3D12 path."
+    "Vulkan/Source 2 — not the D3D12 path.",
+    "Windows build tries DX11 first. Without DXVK, Wine reports feature level 9.5 and it dies."
   ],
   "research": {
     "steam": "https://store.steampowered.com/app/1902490/",
