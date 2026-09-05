@@ -235,6 +235,30 @@ public actor RuntimeSupervisor {
         return Array(running.keys)
     }
 
+    /// Quitting Mogged did not stop anything it started: neither the game nor a Steam
+    /// client it launched survive their parent process, but Foundation's `Process`
+    /// keeps a child alive after Mogged exits unless told to stop first. Called from
+    /// the app's termination handler, before it actually quits.
+    public func stopAll() {
+        for handle in running.values { handle.terminate() }
+        running.removeAll()
+        steamClient?.terminate()
+        steamClient = nil
+    }
+
+    /// A Steam client denied on a previous run keeps retrying the same rejected
+    /// login and periodically resurfaces its own window, with nothing tying that to
+    /// a Play click — this is what running.jsonl showed as a "random" black window.
+    /// Called on every app start so a dirty previous session cannot linger.
+    public func cleanupOrphanedSteamClients(profiles: [TitleProfile]) {
+        for profile in profiles where profile.settings?.needsSteamClient == true {
+            let prefix = environment.prefixURL(for: profile.id)
+            guard SteamServices.needsGuardCode(prefix: prefix) else { continue }
+            SteamServices.killOrphanedClient(prefix: prefix)
+            telemetry.record(TelemetryEvent(event: "steam.services.orphan.killed", titleId: profile.id))
+        }
+    }
+
     public func backendReady() -> Bool {
         if let existing = configStore.load(), existing.wineIsExecutable {
             return true

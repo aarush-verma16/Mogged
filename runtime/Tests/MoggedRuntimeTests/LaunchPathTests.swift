@@ -244,6 +244,70 @@ struct LaunchPathTests {
     }
 
     @Test
+    func bootstrapKillsALoginDeniedFromAPreviousSession() async throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let (supervisor, paths) = try makeSupervisor(home: home, wine: nil)
+        let wine = try writeFakeSteamClientWine(in: home)
+        try BackendConfigStore(paths: paths).save(BackendConfig(wine: wine.path))
+
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        let prefix = WineEnvironment(paths: paths).prefixURL(for: profile.id)
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir, withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "", paths: paths)
+
+        // Simulate last app run: Play was pressed, the client got denied, and the
+        // app quit (or crashed) before anyone pressed Play again to notice.
+        _ = try await supervisor.prepareSteamServices(profile: profile)
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(SteamServices.needsGuardCode(prefix: prefix))
+
+        // A brand-new supervisor, as if the app had just been relaunched, must
+        // still find and kill that denied client on its own during bootstrap.
+        let (fresh, _) = try makeSupervisor(home: home, wine: nil)
+        await fresh.cleanupOrphanedSteamClients(profiles: [profile])
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(pgrep(matching: wine.path).isEmpty)
+    }
+
+    @Test
+    func stopAllTerminatesTheGameAndAnyRunningSteamClient() async throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let gameWine = try writeFakeWine(in: home, hold: true)
+        let (supervisor, paths) = try makeSupervisor(home: home, wine: gameWine.path)
+
+        // A game with no Steam dependency, running the normal way.
+        let gameProfile = try smokeProfile()
+        let game = try makeGameFolder(home: home, profile: gameProfile)
+        try await supervisor.rememberInstall(titleId: gameProfile.id, folder: game)
+        _ = try await supervisor.launch(profile: gameProfile)
+        #expect(await supervisor.runningTitleIds().contains(gameProfile.id))
+
+        // A different title's Steam client, also up at the same time.
+        let steamWine = try writeFakeSteamClientWine(in: home)
+        try BackendConfigStore(paths: paths).save(BackendConfig(wine: steamWine.path))
+        let steamProfile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        let steamDir = WineEnvironment(paths: paths)
+            .prefixURL(for: steamProfile.id)
+            .appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir, withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "", paths: paths)
+        _ = try await supervisor.prepareSteamServices(profile: steamProfile)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(!pgrep(matching: steamWine.path).isEmpty)
+
+        await supervisor.stopAll()
+        try await Task.sleep(for: .milliseconds(300))
+
+        #expect(!(await supervisor.runningTitleIds().contains(gameProfile.id)))
+        #expect(pgrep(matching: steamWine.path).isEmpty)
+    }
+
+    @Test
     func credentialsRoundTripThroughTheLocalStore() throws {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -422,6 +486,18 @@ struct LaunchPathTests {
         #expect(log.contains("launch.stopped"))
         #expect(FileManager.default.fileExists(atPath: paths.environments.appendingPathComponent(profile.id).path))
     }
+}
+
+private func pgrep(matching needle: String) -> [Int32] {
+    let proc = Process()
+    proc.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+    proc.arguments = ["-f", needle]
+    let pipe = Pipe()
+    proc.standardOutput = pipe
+    try? proc.run()
+    proc.waitUntilExit()
+    let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    return text.split(separator: "\n").compactMap { Int32($0) }
 }
 
 private func scratchHome() throws -> URL {

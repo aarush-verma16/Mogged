@@ -63,6 +63,10 @@ final class AppModel {
     func bootstrap() async {
         loadSavedCredentials()
         await refresh()
+        // A Steam client denied last session keeps retrying and flashing its own
+        // window with nothing tying that to a Play click. Sweep it before anything
+        // else runs, not just reactively the next time Play happens to be pressed.
+        await supervisor.cleanupOrphanedSteamClients(profiles: entries.map(\.profile))
         errorMarkRuntime = runtimeLog
         errorMarkGame = gameLog
         sessionReady = true
@@ -274,6 +278,12 @@ final class AppModel {
         } catch {
             rememberError(String(describing: error))
         }
+    }
+
+    /// Quitting Mogged must not leave a game or a Steam client it started running
+    /// behind — see `RuntimeSupervisor.stopAll()`.
+    func stopEverything() async {
+        await supervisor.stopAll()
     }
 
     func cancelInstall() async {

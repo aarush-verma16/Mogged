@@ -120,9 +120,22 @@ public struct SteamServices: Sendable {
         guard let exe = clientExe(prefix: prefix) else { return }
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-        proc.arguments = ["-f", exe.path]
+        // `pkill -f` matches as a POSIX ERE. "Program Files (x86)" contains regex
+        // metacharacters that make it silently match nothing unescaped — measured:
+        // an unescaped pattern here leaves the target running and unkillable.
+        proc.arguments = ["-f", regexEscaped(exe.path)]
         try? proc.run()
         proc.waitUntilExit()
+    }
+
+    private static func regexEscaped(_ path: String) -> String {
+        let special = Set<Character>(".^$*+?()[]{}|\\")
+        var out = ""
+        for ch in path {
+            if special.contains(ch) { out.append("\\") }
+            out.append(ch)
+        }
+        return out
     }
 
     /// SteamCMD and the graphical Steam client hold separate device authorizations
