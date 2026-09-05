@@ -10,6 +10,7 @@ final class AppModel {
     var selectedId: String?
     var runningIds: Set<String> = []
     var banner: String?
+    var bannerIsError = true
     var isBusy = false
     var loadFailed = false
     var query = ""
@@ -38,6 +39,7 @@ final class AppModel {
     private var pollTask: Task<Void, Never>?
     private var seenExit: [String: Int32] = [:]
     private var seenInstallError: String?
+    private var seenInstallNotice: String?
 
     var selected: LibraryEntry? {
         visible.first { $0.id == selectedId } ?? entries.first { $0.id == selectedId } ?? visible.first
@@ -78,9 +80,14 @@ final class AppModel {
             if let install, install.titleId == selectedId, install.running || !(selected?.canPlay ?? false) {
                 if !install.log.isEmpty { gameLog = install.log }
             }
-            if let install, let err = install.error, !install.running, seenInstallError != err {
+            if let install, let err = install.error, seenInstallError != err {
                 seenInstallError = err
                 rememberError(err)
+            } else if let install, install.titleId == "steam-login", !install.running,
+                      install.error == nil, !install.line.isEmpty, seenInstallNotice != install.line
+            {
+                seenInstallNotice = install.line
+                rememberNotice(install.line)
             }
             if let session, let code = session.lastExit, code != 0, session.running == false,
                seenExit[session.titleId] != code
@@ -131,6 +138,8 @@ final class AppModel {
 
     func install(_ entry: LibraryEntry) async {
         banner = nil
+        lastError = nil
+        bannerIsError = true
         saveCredentials()
         isBusy = true
         defer { isBusy = false }
@@ -152,6 +161,8 @@ final class AppModel {
 
     func requestGuard() async {
         banner = nil
+        lastError = nil
+        bannerIsError = true
         saveCredentials()
         isBusy = true
         defer { isBusy = false }
@@ -186,6 +197,7 @@ final class AppModel {
     func clearError() {
         banner = nil
         lastError = nil
+        bannerIsError = true
     }
 
     func copyVisibleLog() {
@@ -203,13 +215,21 @@ final class AppModel {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         banner = trimmed
+        bannerIsError = true
         if lastError == trimmed { return }
         lastError = trimmed
         logTab = .errors
     }
 
+    func rememberNotice(_ message: String) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        banner = trimmed
+        bannerIsError = false
+    }
+
     func saveCredentials() {
-        SteamKeychain.save(user: steamUser, password: steamPassword)
+        SteamKeychain.save(user: steamUser, password: steamPassword, guardCode: steamGuard)
         UserDefaults.standard.removeObject(forKey: "mogged.steamUser")
         credentialsSaved = SteamKeychain.load() != nil
     }
@@ -225,6 +245,7 @@ final class AppModel {
         if let saved = SteamKeychain.load() {
             steamUser = saved.user
             steamPassword = saved.password
+            steamGuard = saved.guard
             credentialsSaved = true
             return
         }

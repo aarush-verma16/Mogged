@@ -131,7 +131,7 @@ struct LibraryView: View {
                     HStack(alignment: .top, spacing: Theme.Space.x2) {
                         Text(banner)
                             .font(Theme.mono(11))
-                            .foregroundStyle(Theme.error)
+                            .foregroundStyle(model.bannerIsError ? Theme.error : Theme.ink)
                             .textSelection(.enabled)
                         Spacer(minLength: 0)
                         Button("copy") {
@@ -289,50 +289,71 @@ struct LibraryView: View {
     @ViewBuilder
     private var accountBar: some View {
         @Bindable var model = model
-        VStack(alignment: .leading, spacing: Theme.Space.x1) {
+        let gettingCode = model.install?.titleId == "steam-login" && model.install?.running == true
+        let blocked = model.isBusy || model.install?.running == true
+            || model.steamUser.isEmpty || model.steamPassword.isEmpty
+        VStack(alignment: .leading, spacing: Theme.Space.x2) {
             HStack(spacing: Theme.Space.x2) {
-                TextField("steam user", text: $model.steamUser)
-                    .textFieldStyle(.plain)
-                    .font(Theme.mono(11))
-                    .foregroundStyle(Theme.ink)
-                    .padding(.horizontal, Theme.Space.x2)
-                    .frame(height: 28)
-                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
-                SecureField("password", text: $model.steamPassword)
-                    .textFieldStyle(.plain)
-                    .font(Theme.mono(11))
-                    .foregroundStyle(Theme.ink)
-                    .padding(.horizontal, Theme.Space.x2)
-                    .frame(height: 28)
-                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
-                SecureField("guard", text: $model.steamGuard)
-                    .textFieldStyle(.plain)
-                    .font(Theme.mono(11))
-                    .foregroundStyle(Theme.ink)
-                    .padding(.horizontal, Theme.Space.x2)
-                    .frame(width: 88, height: 28)
-                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
-                Button("Get code") { Task { await model.requestGuard() } }
-                    .buttonStyle(.plain)
-                    .font(Theme.mono(10, weight: .medium))
-                    .foregroundStyle(Theme.ink)
-                    .disabled(model.isBusy || model.install?.running == true || model.steamUser.isEmpty || model.steamPassword.isEmpty)
-                    .opacity(model.isBusy || model.install?.running == true || model.steamUser.isEmpty || model.steamPassword.isEmpty ? 0.4 : 1)
-                Button(model.credentialsSaved ? "saved" : "Save") { model.saveCredentials() }
-                    .buttonStyle(.plain)
-                    .font(Theme.mono(10, weight: .medium))
-                    .foregroundStyle(model.credentialsSaved ? Theme.success : Theme.ink)
+                accountField("account name", text: $model.steamUser)
+                accountField("password", text: $model.steamPassword, secure: true)
+            }
+            HStack(spacing: Theme.Space.x2) {
+                Button(gettingCode ? "Getting code…" : "Get code") {
+                    Task { await model.requestGuard() }
+                }
+                .buttonStyle(VercelButtonStyle(kind: .secondary, disabled: blocked))
+                .disabled(blocked)
+                Spacer()
+                if model.credentialsSaved {
+                    Text("saved")
+                        .font(Theme.mono(10))
+                        .foregroundStyle(Theme.success)
+                }
                 Button("forget") { model.forgetCredentials() }
                     .buttonStyle(.plain)
                     .font(Theme.mono(10))
                     .foregroundStyle(Theme.muted)
             }
-            Text("Get code signs in (no download). Steam emails a code, or open the Steam phone app. Paste it in guard, then Install.")
+            if showCodeField {
+                accountField("code", text: $model.steamGuard)
+            }
+            Text(accountHint)
                 .font(Theme.mono(10))
                 .foregroundStyle(Theme.muted)
         }
         .padding(.horizontal, Theme.Space.x3)
         .padding(.bottom, Theme.Space.x2)
+        .onChange(of: model.steamUser) { _, _ in model.saveCredentials() }
+        .onChange(of: model.steamPassword) { _, _ in model.saveCredentials() }
+        .onChange(of: model.steamGuard) { _, _ in model.saveCredentials() }
+    }
+
+    private var showCodeField: Bool {
+        !model.steamGuard.isEmpty
+            || model.install?.phase == "Guard"
+            || (!model.bannerIsError && model.banner != nil)
+    }
+
+    private var accountHint: String {
+        if !model.bannerIsError, model.banner != nil { return "Paste the code, then Install. It's saved on this Mac." }
+        if !model.steamGuard.isEmpty { return "Code is saved. Change it only if Steam asks again." }
+        return "Account name, not email. Get code, paste it, then Install."
+    }
+
+    private func accountField(_ placeholder: String, text: Binding<String>, secure: Bool = false) -> some View {
+        Group {
+            if secure {
+                SecureField(placeholder, text: text)
+            } else {
+                TextField(placeholder, text: text)
+            }
+        }
+        .textFieldStyle(.plain)
+        .font(Theme.mono(11))
+        .foregroundStyle(Theme.ink)
+        .padding(.horizontal, Theme.Space.x2)
+        .frame(height: 28)
+        .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.sm, style: .continuous))
     }
 
     @ViewBuilder
@@ -344,7 +365,7 @@ struct LibraryView: View {
         KV("bytes", (active ? inst?.bytes : nil) ?? "—")
         KV("line", (active ? inst?.line : nil) ?? "—")
         KV("dest", (active ? inst?.path : nil) ?? "—")
-        KV("error", (active ? inst?.error : nil) ?? model.lastError ?? "—")
+        KV("error", (active ? inst?.error : nil) ?? (model.bannerIsError ? model.lastError : nil) ?? "—")
         if active, inst?.running == true {
             ProgressView(value: inst?.fraction ?? 0)
                 .tint(Theme.blue)

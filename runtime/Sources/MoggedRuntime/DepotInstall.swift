@@ -104,15 +104,19 @@ public final class DepotInstaller: @unchecked Sendable {
     }
 
     public func cancel() {
-        lock.lock()
-        let proc = process
-        lock.unlock()
-        proc?.terminate()
+        terminateProcess()
         apply { snap in
             snap.running = false
             snap.phase = "Stopped"
             snap.line = "install cancelled"
         }
+    }
+
+    private func terminateProcess() {
+        lock.lock()
+        let proc = process
+        lock.unlock()
+        proc?.terminate()
     }
 
     public func ensureSteamCMD() async throws {
@@ -361,7 +365,7 @@ public final class DepotInstaller: @unchecked Sendable {
                 snap.succeeded = result == .signedIn
                 snap.phase = result.phase
                 snap.line = result.message
-                snap.error = result == .signedIn ? nil : result.message
+                snap.error = result.isAuthFailure ? result.message : nil
             }
             onExit(self.current())
         }
@@ -389,11 +393,12 @@ public final class DepotInstaller: @unchecked Sendable {
         case badGuard
         case rateLimited
         case failed(String)
+        case unknown
 
         public var message: String {
             switch self {
             case .signedIn:
-                return "Signed in. Leave guard empty and click Install."
+                return "Signed in. Click Install."
             case .needsGuard(let text):
                 return text
             case .badUser:
@@ -406,13 +411,15 @@ public final class DepotInstaller: @unchecked Sendable {
                 return "Steam blocked this login for a bit. Wait, then try again."
             case .failed(let text):
                 return text
+            case .unknown:
+                return "Open the Steam app or your email for a code. Paste it, then Install."
             }
         }
 
         public var phase: String {
             switch self {
             case .signedIn: return "Ready"
-            case .needsGuard: return "Guard"
+            case .needsGuard, .unknown: return "Guard"
             default: return "Failed"
             }
         }
@@ -464,7 +471,7 @@ public final class DepotInstaller: @unchecked Sendable {
         if line.contains("login failure") || line.contains("failed login") || line.contains("failed. login") {
             return .failed("Steam login failed. Check account name and password.")
         }
-        return .needsGuard("Open the Steam app or your email for a Guard code. Paste it, then Install.")
+        return .unknown
     }
 
     private func awaitableSteamcmdPresent() throws {
@@ -494,7 +501,21 @@ public final class DepotInstaller: @unchecked Sendable {
             if line.lowercased().contains("login") && line.contains(password) {
                 continue
             }
-            if let parsed = DepotProgress.parse(line) {
+            let live = Self.loginResult(from: line)
+            if live.isAuthFailure {
+                apply { snap in
+                    snap.phase = "Failed"
+                    snap.line = live.message
+                    snap.error = live.message
+                }
+                terminateProcess()
+            } else if case .needsGuard(let text) = live {
+                apply { snap in
+                    snap.phase = "Guard"
+                    snap.line = text
+                    snap.error = nil
+                }
+            } else if let parsed = DepotProgress.parse(line) {
                 apply { snap in
                     snap.fraction = parsed.fraction
                     snap.bytes = parsed.bytes
