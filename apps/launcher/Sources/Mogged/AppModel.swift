@@ -40,6 +40,9 @@ final class AppModel {
     private var seenExit: [String: Int32] = [:]
     private var seenInstallError: String?
     private var seenInstallNotice: String?
+    private var errorMarkRuntime = ""
+    private var errorMarkGame = ""
+    private var sessionReady = false
 
     var selected: LibraryEntry? {
         visible.first { $0.id == selectedId } ?? entries.first { $0.id == selectedId } ?? visible.first
@@ -57,6 +60,14 @@ final class AppModel {
     func bootstrap() async {
         loadSavedCredentials()
         await refresh()
+        errorMarkRuntime = runtimeLog
+        errorMarkGame = gameLog
+        sessionReady = true
+        clearError()
+        errorLog = ""
+        seenInstallError = nil
+        seenInstallNotice = nil
+        seenExit = [:]
         if selectedId == nil {
             selectedId = entries.first(where: { $0.profile.role == .smoke })?.id ?? entries.first?.id
         }
@@ -95,11 +106,15 @@ final class AppModel {
                 seenExit[session.titleId] = code
                 rememberError("\(session.titleId) exited \(code)")
             }
-            errorLog = ErrorFeed.digest(
-                runtimeLog: runtimeLog,
-                titleLog: gameLog,
-                extra: [lastError, install?.error].compactMap { $0 }
-            )
+            if sessionReady {
+                errorLog = ErrorFeed.digest(
+                    runtimeLog: ErrorFeed.added(after: errorMarkRuntime, in: runtimeLog),
+                    titleLog: ErrorFeed.added(after: errorMarkGame, in: gameLog),
+                    extra: [lastError, install?.error].compactMap { $0 }
+                )
+            } else {
+                errorLog = ""
+            }
         } catch let error as MoggedError {
             loadFailed = true
             rememberError(error.logDescription)

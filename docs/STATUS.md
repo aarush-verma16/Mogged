@@ -21,7 +21,7 @@ Done:
 
 Not done:
 
-- Aperture Desk Job is on disk under Application Support/Mogged/games. First Play died on Wine D3D11 feature level 9.5; launch now uses DXVK + `game/steampal`. Apex / Rivals stay listed but are heavy.
+- Aperture Desk Job is on disk. Play still died because DXVK was not copied into the prefix (Wine D3D11 FL 9.5). Staging DXVK under Application Support/engine/dxvk. Apex / Rivals stay listed but are heavy.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
 - No game has drawn pixels. No FPS number. Do not claim smoothness.

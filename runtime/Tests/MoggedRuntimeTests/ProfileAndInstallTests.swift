@@ -125,6 +125,16 @@ func errorFeedKeepsFailuresOnly() {
 }
 
 @Test
+func errorFeedIgnoresTextBeforeSessionMark() {
+    let old = "launch.failed code=1\nEncountered error.\n"
+    let full = old + "launch.started\nlaunch.failed code=1\n"
+    let added = ErrorFeed.added(after: old, in: full)
+    #expect(!added.contains("Encountered error."))
+    #expect(ErrorFeed.digest(runtimeLog: added, titleLog: "").contains("launch.failed"))
+    #expect(ErrorFeed.added(after: "", in: full).isEmpty)
+}
+
+@Test
 func guardHintPointsAtSteamAppOrEmail() {
     let email = DepotInstaller.guardHint(from: "This account is protected by Steam Guard. Check your email.")
     #expect(email.lowercased().contains("email"))

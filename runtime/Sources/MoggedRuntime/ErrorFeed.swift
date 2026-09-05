@@ -18,6 +18,13 @@ public enum ErrorFeed: Sendable {
         return hits.contains { line.contains($0) }
     }
 
+    /// Text appended after a previous snapshot. Empty mark → treat everything as historical.
+    public static func added(after mark: String, in full: String) -> String {
+        if mark.isEmpty { return "" }
+        if full.hasPrefix(mark) { return String(full.dropFirst(mark.count)) }
+        return full
+    }
+
     public static func digest(runtimeLog: String, titleLog: String, extra: [String] = []) -> String {
         var seen = Set<String>()
         var out: [String] = []

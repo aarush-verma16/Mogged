@@ -24,6 +24,9 @@ public struct RuntimePaths: Sendable, Equatable {
     public var caches: URL { root.appendingPathComponent("caches", isDirectory: true) }
     public var steamcmd: URL { root.appendingPathComponent("steamcmd", isDirectory: true) }
     public var games: URL { root.appendingPathComponent("games", isDirectory: true) }
+    public var engine: URL { root.appendingPathComponent("engine", isDirectory: true) }
+    public var dxvk: URL { engine.appendingPathComponent("dxvk", isDirectory: true) }
+    public var profiles: URL { root.appendingPathComponent("profiles", isDirectory: true) }
 
     public func gameFolder(for titleId: String) -> URL {
         games.appendingPathComponent(titleId, isDirectory: true)

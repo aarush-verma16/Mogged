@@ -22,27 +22,39 @@ public enum ProfileLoader {
     }
 
     public static func profilesDirectory() throws -> URL {
+        if let bundled = Bundle.main.resourceURL?.appendingPathComponent("profiles", isDirectory: true),
+           directoryHasProfiles(bundled)
+        {
+            return bundled
+        }
+
+        let staged = RuntimePaths.standard().profiles
+        if directoryHasProfiles(staged) { return staged }
+
         if let env = ProcessInfo.processInfo.environment["MOGGED_PROFILES"] {
             let url = URL(fileURLWithPath: env, isDirectory: true)
             if directoryHasProfiles(url) { return url }
         }
 
-        var walker = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        for _ in 0..<10 {
-            let candidate = walker.appendingPathComponent("profiles", isDirectory: true)
-            if directoryHasProfiles(candidate) { return candidate }
-            let parent = walker.deletingLastPathComponent()
-            if parent.path == walker.path { break }
-            walker = parent
-        }
+        // Tests / CLI only. The .app must not read the repo (it lives on Desktop and re-prompts).
+        if Bundle.main.bundleURL.pathExtension != "app" {
+            var walker = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            for _ in 0..<10 {
+                let candidate = walker.appendingPathComponent("profiles", isDirectory: true)
+                if directoryHasProfiles(candidate) { return candidate }
+                let parent = walker.deletingLastPathComponent()
+                if parent.path == walker.path { break }
+                walker = parent
+            }
 
-        let fromSource = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("profiles", isDirectory: true)
-        if directoryHasProfiles(fromSource) { return fromSource }
+            let fromSource = URL(fileURLWithPath: #filePath)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+                .appendingPathComponent("profiles", isDirectory: true)
+            if directoryHasProfiles(fromSource) { return fromSource }
+        }
 
         throw MoggedError.profilesNotFound
     }

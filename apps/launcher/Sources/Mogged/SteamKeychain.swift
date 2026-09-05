@@ -1,50 +1,35 @@
 import Foundation
-import Security
+import MoggedRuntime
 
-/// Local Keychain only. Never sent off this Mac.
+/// Local file in Application Support. Keychain re-prompts on every unsigned rebuild.
 enum SteamKeychain {
-    private static let service = "app.mogged.steam"
-    private static let account = "steam-login"
+    private static var fileURL: URL {
+        RuntimePaths.standard().root.appendingPathComponent("steam-login")
+    }
 
     static func save(user: String, password: String, guardCode: String) {
         let user = user.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !user.isEmpty, !password.isEmpty else { return }
         let blob = encode(user: user, password: password, guardCode: guardCode)
         guard let data = blob.data(using: .utf8) else { return }
-        delete()
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-        ]
-        SecItemAdd(query as CFDictionary, nil)
+        try? FileManager.default.createDirectory(
+            at: RuntimePaths.standard().root,
+            withIntermediateDirectories: true
+        )
+        try? data.write(to: fileURL, options: .atomic)
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o600],
+            ofItemAtPath: fileURL.path
+        )
     }
 
     static func load() -> (user: String, password: String, guard: String)? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var out: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &out)
-        guard status == errSecSuccess, let data = out as? Data, let text = String(data: data, encoding: .utf8) else {
-            return nil
-        }
+        guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else { return nil }
         return decode(text)
     }
 
     static func delete() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        SecItemDelete(query as CFDictionary)
+        try? FileManager.default.removeItem(at: fileURL)
     }
 
     static func encode(user: String, password: String, guardCode: String) -> String {

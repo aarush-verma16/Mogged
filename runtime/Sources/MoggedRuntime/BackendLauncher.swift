@@ -48,6 +48,7 @@ public struct BackendLauncher: Sendable {
             "DXVK_STATE_CACHE": "1",
             "DXVK_STATE_CACHE_PATH": cache.path,
             "DXVK_LOG_PATH": paths.logs.path,
+            "DXVK_LOG_LEVEL": "info",
             "SteamAppId": "\(profile.steamAppId)",
             "SteamGameId": "\(profile.steamAppId)",
         ]
@@ -217,6 +218,10 @@ public struct BackendLauncher: Sendable {
         if value != "bundled" {
             let url = URL(fileURLWithPath: value)
             if FileManager.default.fileExists(atPath: url.path) { return url }
+        }
+        let staged = paths.dxvk
+        if FileManager.default.fileExists(atPath: staged.appendingPathComponent("d3d11.dll").path) {
+            return staged
         }
         guard let third = ThirdParty.root() else { return nil }
         for rel in bundled {
