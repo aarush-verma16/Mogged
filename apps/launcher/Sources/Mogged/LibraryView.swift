@@ -364,7 +364,7 @@ struct LibraryView: View {
         KV("state", active ? (inst?.percentLabel ?? "—") : (entry.canPlay ? "ready" : "missing"))
         KV("bytes", (active ? inst?.bytes : nil) ?? "—")
         KV("line", (active ? inst?.line : nil) ?? "—")
-        KV("dest", (active ? inst?.path : nil) ?? "—")
+        KV("dest", (active ? inst?.path : nil) ?? entry.install?.path.path ?? model.defaultInstallFolder(for: entry.id).path)
         KV("error", (active ? inst?.error : nil) ?? (model.bannerIsError ? model.lastError : nil) ?? "—")
         if active, inst?.running == true {
             ProgressView(value: inst?.fraction ?? 0)

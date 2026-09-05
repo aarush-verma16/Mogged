@@ -184,7 +184,27 @@ final class AppModel {
 
     func locate(_ entry: LibraryEntry) async {
         banner = nil
-        guard let folder = Self.pickFolder(title: entry.profile.displayName) else { return }
+        let dest = RuntimePaths.standard().gameFolder(for: entry.id)
+        let known = entry.install?.path
+            ?? (FileManager.default.fileExists(atPath: dest.path) ? dest : nil)
+
+        if let known {
+            let highlight = entry.install?.executable ?? known
+            NSWorkspace.shared.activateFileViewerSelecting([highlight])
+            do {
+                try await supervisor.rememberInstall(titleId: entry.id, folder: known)
+                rememberNotice(known.path)
+                await refresh()
+                selectedId = entry.id
+            } catch {
+                rememberError(String(describing: error))
+            }
+            return
+        }
+
+        let games = RuntimePaths.standard().games
+        try? FileManager.default.createDirectory(at: games, withIntermediateDirectories: true)
+        guard let folder = Self.pickFolder(title: entry.profile.displayName, start: games) else { return }
         do {
             try await supervisor.rememberInstall(titleId: entry.id, folder: folder)
             await refresh()
@@ -264,14 +284,19 @@ final class AppModel {
         }
     }
 
-    private static func pickFolder(title: String) -> URL? {
+    func defaultInstallFolder(for titleId: String) -> URL {
+        RuntimePaths.standard().gameFolder(for: titleId)
+    }
+
+    private static func pickFolder(title: String, start: URL) -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
+        panel.directoryURL = start
         panel.prompt = "Choose"
-        panel.message = "Folder for \(title)"
+        panel.message = "Installs go in \(start.path). Choose that folder or another for \(title)."
         return panel.runModal() == .OK ? panel.url : nil
     }
 }

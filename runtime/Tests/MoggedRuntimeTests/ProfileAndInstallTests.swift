@@ -47,6 +47,21 @@ func userMessagesOmitToolkitNames() {
 }
 
 @Test
+func locatesExeFromBundledGamesFolder() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("mogged-games-\(UUID().uuidString)")
+    let games = root.appendingPathComponent("games")
+    let dest = games.appendingPathComponent("apex-legends")
+    try FileManager.default.createDirectory(at: dest.appendingPathComponent("bin"), withIntermediateDirectories: true)
+    try Data().write(to: dest.appendingPathComponent("bin/r5apex.exe"))
+    defer { try? FileManager.default.removeItem(at: root) }
+
+    let profile = try ProfileLoader.load().first { $0.id == "apex-legends" }!
+    let located = InstallLocator(gamesRoot: games).locate(profile: profile, overridePath: nil)
+    #expect(located?.path.lastPathComponent == "apex-legends")
+    #expect(located?.executable?.lastPathComponent == "r5apex.exe")
+}
+
+@Test
 func locatesExeFromOverrideFolder() throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent("mogged-test-\(UUID().uuidString)")
     let gameDir = root.appendingPathComponent("Apex")

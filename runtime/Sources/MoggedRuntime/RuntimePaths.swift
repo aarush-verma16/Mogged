@@ -25,6 +25,10 @@ public struct RuntimePaths: Sendable, Equatable {
     public var steamcmd: URL { root.appendingPathComponent("steamcmd", isDirectory: true) }
     public var games: URL { root.appendingPathComponent("games", isDirectory: true) }
 
+    public func gameFolder(for titleId: String) -> URL {
+        games.appendingPathComponent(titleId, isDirectory: true)
+    }
+
     public func ensure() throws {
         let fm = FileManager.default
         try fm.createDirectory(at: root, withIntermediateDirectories: true)

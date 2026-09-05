@@ -7,9 +7,11 @@ public struct LocatedInstall: Sendable, Equatable {
 
 public struct InstallLocator: Sendable {
     private let catalog: SteamCatalog
+    private let gamesRoot: URL
 
-    public init(catalog: SteamCatalog = SteamCatalog()) {
+    public init(catalog: SteamCatalog = SteamCatalog(), gamesRoot: URL? = nil) {
         self.catalog = catalog
+        self.gamesRoot = gamesRoot ?? RuntimePaths.standard().games
     }
 
     public func locate(profile: TitleProfile, overridePath: String?) -> LocatedInstall? {
@@ -21,6 +23,13 @@ public struct InstallLocator: Sendable {
                     ?? windowsExecutables(in: url).first
                 return LocatedInstall(path: url, executable: exe)
             }
+        }
+
+        let bundled = gamesRoot.appendingPathComponent(profile.id, isDirectory: true)
+        if fm.fileExists(atPath: bundled.path) {
+            let exe = findExecutable(in: bundled, names: profile.executables)
+                ?? windowsExecutables(in: bundled).first
+            return LocatedInstall(path: bundled, executable: exe)
         }
 
         for libraryRoot in steamLibraryRoots() {
