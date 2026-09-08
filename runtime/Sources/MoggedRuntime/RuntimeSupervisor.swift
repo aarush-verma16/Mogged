@@ -32,6 +32,7 @@ public actor RuntimeSupervisor {
     private var lastPlan: [String: LaunchPlan] = [:]
     private var lastExit: [String: Int32] = [:]
     private var steamClient: ProcessHandle?
+    private var steamPrefix: URL?
 
     public init(
         locator: InstallLocator? = nil,
@@ -244,6 +245,10 @@ public actor RuntimeSupervisor {
         running.removeAll()
         steamClient?.terminate()
         steamClient = nil
+        if let prefix = steamPrefix {
+            SteamServices.killOrphanedClient(prefix: prefix)
+            steamPrefix = nil
+        }
     }
 
     /// A Steam client denied on a previous run keeps retrying the same rejected
@@ -329,6 +334,7 @@ public actor RuntimeSupervisor {
         if alive && !forceRetry {
             if denied {
                 telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
+                stopSteamClient(prefix: prefix)
                 return .needsGuardCode
             }
             return .signingIn
@@ -336,6 +342,7 @@ public actor RuntimeSupervisor {
 
         if denied && !forceRetry {
             telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
+            stopSteamClient(prefix: prefix)
             return .needsGuardCode
         }
 
@@ -364,6 +371,7 @@ public actor RuntimeSupervisor {
                 exe: exe,
                 credentials: credentials
             )
+            steamPrefix = prefix
             telemetry.record(TelemetryEvent(event: "steam.services.started", titleId: profile.id))
         } catch {
             telemetry.record(
@@ -423,7 +431,12 @@ public actor RuntimeSupervisor {
         guard SteamServices.clientExe(prefix: prefix) != nil else { return .notInstalled }
         guard SteamCredentialStore.load(paths: paths) != nil else { return .needsAccount }
         if SteamServices.isUpdating(prefix: prefix) { return .updating }
-        if SteamServices.needsGuardCode(prefix: prefix) { return .needsGuardCode }
+        if SteamServices.needsGuardCode(prefix: prefix) {
+            // The login failed. Leaving Steam up is the blank black window — it
+            // keeps retrying and never becomes a usable login screen.
+            stopSteamClient(prefix: prefix)
+            return .needsGuardCode
+        }
         if SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true {
             return .signingIn
         }
@@ -434,6 +447,7 @@ public actor RuntimeSupervisor {
     private func stopSteamClient(prefix: URL) {
         steamClient?.terminate()
         steamClient = nil
+        steamPrefix = nil
         SteamServices.killOrphanedClient(prefix: prefix)
     }
 

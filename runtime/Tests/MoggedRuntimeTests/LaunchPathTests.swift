@@ -272,6 +272,8 @@ struct LaunchPathTests {
         _ = try await supervisor.prepareSteamServices(profile: profile)
         try await Task.sleep(for: .milliseconds(700))
         #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(pgrep(matching: wine.path).isEmpty)
 
         SteamCredentialStore.save(user: "player", password: "secret", guardCode: "12345", paths: paths)
         let invocations = home.appendingPathComponent("invocations.txt")

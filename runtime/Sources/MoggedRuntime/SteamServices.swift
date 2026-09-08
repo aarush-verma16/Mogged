@@ -134,16 +134,23 @@ public struct SteamServices: Sendable {
     }
 
     /// Kills a stuck client even across app restarts, when `RuntimeSupervisor` has no
-    /// in-memory handle for it. `pkill -f` on this prefix's own `steam.exe` path only
-    /// ever matches this title's own client, never another title's or the real Steam.
+    /// in-memory handle for it. `pkill -f` matches as a POSIX ERE — "Program Files
+    /// (x86)" must be escaped or it matches nothing. CEF's window process often
+    /// does not include the Unix `steam.exe` path, so killing only that binary
+    /// leaves a blank window up.
     public static func killOrphanedClient(prefix: URL) {
         guard let exe = clientExe(prefix: prefix) else { return }
+        pkill(matching: exe.path)
+        pkill(matching: exe.deletingLastPathComponent().path)
+        // Wine shows these as Windows paths; they are not the native Mac Steam app.
+        pkill(matching: "steamwebhelper.exe")
+        pkill(matching: "steamservice.exe")
+    }
+
+    static func pkill(matching path: String) {
         let proc = Process()
         proc.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-        // `pkill -f` matches as a POSIX ERE. "Program Files (x86)" contains regex
-        // metacharacters that make it silently match nothing unescaped — measured:
-        // an unescaped pattern here leaves the target running and unkillable.
-        proc.arguments = ["-f", regexEscaped(exe.path)]
+        proc.arguments = ["-f", regexEscaped(path)]
         try? proc.run()
         proc.waitUntilExit()
     }
