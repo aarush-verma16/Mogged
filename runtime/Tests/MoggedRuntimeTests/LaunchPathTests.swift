@@ -179,6 +179,47 @@ struct LaunchPathTests {
     }
 
     @Test
+    func anInProgressSteamUpdateIsNotAFailedLogin() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let prefix = home.appendingPathComponent("prefix")
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir.appendingPathComponent("logs"), withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+
+        let now = SteamServices.logDateString(Date())
+        try """
+        [2026-09-05 15:52:02] Client version: 1788400362
+        [2026-09-05 15:52:13] LogonFailure Account Logon Denied
+        """.write(to: steamDir.appendingPathComponent("logs/console_log.txt"), atomically: true, encoding: .utf8)
+        try """
+        [2026-09-05 15:52:00] Startup - updater built Jan 1 2026
+
+        [\(now)] Startup - updater built Sep 6 2026
+        [\(now)] Downloading update (2,431 of 26,178 KB)...
+        """.write(to: steamDir.appendingPathComponent("logs/bootstrap_log.txt"), atomically: true, encoding: .utf8)
+
+        #expect(SteamServices.isUpdating(prefix: prefix))
+        #expect(!SteamServices.needsGuardCode(prefix: prefix))
+    }
+
+    @Test
+    func aFinishedUpdateDoesNotLookLikeAnUpdate() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let prefix = home.appendingPathComponent("prefix")
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir.appendingPathComponent("logs"), withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        try """
+        [2026-09-06 14:01:34] Startup - updater built Sep 6 2026
+        [2026-09-06 14:01:35] Downloading update (26,178 of 26,178 KB)...
+        [2026-09-06 14:01:40] Verification complete
+        """.write(to: steamDir.appendingPathComponent("logs/bootstrap_log.txt"), atomically: true, encoding: .utf8)
+        #expect(!SteamServices.isUpdating(prefix: prefix))
+    }
+
+    @Test
     func signedInStateComesFromTheSteamApiRegistryKey() throws {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -208,6 +249,33 @@ struct LaunchPathTests {
     }
 
     @Test
+    func pollDoesNotRespawnSteamAfterADeniedLogin() async throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let (supervisor, paths) = try makeSupervisor(home: home, wine: nil)
+        let wine = try writeFakeSteamClientWine(in: home)
+        try BackendConfigStore(paths: paths).save(BackendConfig(wine: wine.path))
+
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        let prefix = WineEnvironment(paths: paths).prefixURL(for: profile.id)
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir, withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "", paths: paths)
+
+        _ = try await supervisor.prepareSteamServices(profile: profile)
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
+
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "12345", paths: paths)
+        let invocations = home.appendingPathComponent("invocations.txt")
+        let before = (try? String(contentsOf: invocations, encoding: .utf8)) ?? ""
+        #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
+        let after = (try? String(contentsOf: invocations, encoding: .utf8)) ?? ""
+        #expect(before == after)
+    }
+
+    @Test
     func aDeniedLoginClearsItselfOnceAGuardCodeIsSaved() async throws {
         let home = try scratchHome()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -234,7 +302,9 @@ struct LaunchPathTests {
 
         // A fresh code arrives (the same fields Install uses) and Play is pressed again.
         SteamCredentialStore.save(user: "player", password: "secret", guardCode: "12345", paths: paths)
-        let retried = try await supervisor.pollSteamLogin(profile: profile)
+        // Polling must not spawn another client — that is the updater-window kill loop.
+        #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
+        let retried = try await supervisor.prepareSteamServices(profile: profile)
         #expect(retried == .signingIn)
         try await Task.sleep(for: .milliseconds(700))
 

@@ -181,7 +181,7 @@ public actor RuntimeSupervisor {
         if profile.settings?.needsSteamClient == true {
             switch startSteamServices(profile: profile, prefix: trees.prefix, config: config) {
             case .ready: break
-            case .signingIn: throw MoggedError.steamSignInNeeded
+            case .signingIn, .updating: throw MoggedError.steamSignInNeeded
             case .needsGuardCode: throw MoggedError.steamGuardCodeNeeded
             case .needsAccount: throw MoggedError.steamAccountNeeded
             case .notInstalled: throw MoggedError.steamServicesMissing
@@ -302,25 +302,28 @@ public actor RuntimeSupervisor {
             return .needsAccount
         }
 
-        // Checked by log content, not just the in-memory handle: a denied client from
-        // a previous app run is still out there retrying the same rejected login, and
-        // this actor would not otherwise know about it.
-        if SteamServices.needsGuardCode(prefix: prefix) {
-            steamClient?.terminate()
-            steamClient = nil
-            SteamServices.killOrphanedClient(prefix: prefix)
-            // Once denied, a plain Play click never spawns Steam again without a
-            // code already in hand — otherwise it would silently stop asking Valve
-            // for a fresh device check, and a lost or expired first email would be
-            // a dead end forever. `forceRetry` (the explicit "try again" action) is
-            // the only way past this short-circuit.
-            guard !credentials.guardCode.isEmpty || forceRetry else {
+        // Steam's updater window is Steam itself. Killing it to "retry login"
+        // is what made the window open and immediately close on every Play poll.
+        if SteamServices.isUpdating(prefix: prefix) { return .updating }
+
+        let alive = SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true
+        let denied = SteamServices.needsGuardCode(prefix: prefix)
+        let retryWithCode = denied && !credentials.guardCode.isEmpty
+
+        if alive && !forceRetry && !retryWithCode {
+            if denied {
                 telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
                 return .needsGuardCode
             }
-        } else if steamClient?.isRunning == true {
             return .signingIn
         }
+
+        if denied && credentials.guardCode.isEmpty && !forceRetry {
+            telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
+            return .needsGuardCode
+        }
+
+        if alive { stopSteamClient(prefix: prefix) }
 
         do {
             steamClient = try services.start(
@@ -355,7 +358,7 @@ public actor RuntimeSupervisor {
     /// Explicit "try again" for Play sign-in: unlike a plain Play click, this asks
     /// Steam again even though the last attempt was denied, so a lost, expired, or
     /// missed device-approval email gets a real second chance instead of Mogged
-    /// quietly refusing to ever retry again.
+    /// quietly refusing to ever retry again. Does not interrupt an in-progress update.
     public func retryPlaySignIn(profile: TitleProfile) throws -> SteamServicesState {
         try prepareSteamServices(profile: profile, forceRetry: true)
     }
@@ -365,11 +368,31 @@ public actor RuntimeSupervisor {
         return SteamServices.isSignedIn(prefix: environment.prefixURL(for: profile.id))
     }
 
-    /// `prepareSteamServices` is safe to call again: signed in and up short-circuit,
-    /// a stuck denied login gets cleared, and a fresh code in the store gets used
-    /// immediately. Play polls this rather than a separate read-only check.
+    /// Read-only. Polling Play used to call `prepareSteamServices`, which killed and
+    /// respawned Steam whenever a stale denial was still in the log — including
+    /// while Steam was applying its own update.
     public func pollSteamLogin(profile: TitleProfile) throws -> SteamServicesState {
-        try prepareSteamServices(profile: profile)
+        guard profile.settings?.needsSteamClient == true else { return .ready }
+        return inspectSteamServices(prefix: environment.prefixURL(for: profile.id))
+    }
+
+    private func inspectSteamServices(prefix: URL) -> SteamServicesState {
+        if SteamServices.isSignedIn(prefix: prefix) { return .ready }
+        guard SteamServices.clientExe(prefix: prefix) != nil else { return .notInstalled }
+        guard SteamCredentialStore.load(paths: paths) != nil else { return .needsAccount }
+        if SteamServices.isUpdating(prefix: prefix) { return .updating }
+        if SteamServices.needsGuardCode(prefix: prefix) { return .needsGuardCode }
+        if SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true {
+            return .signingIn
+        }
+        if SteamServices.isStarting(prefix: prefix) { return .updating }
+        return .signingIn
+    }
+
+    private func stopSteamClient(prefix: URL) {
+        steamClient?.terminate()
+        steamClient = nil
+        SteamServices.killOrphanedClient(prefix: prefix)
     }
 
     /// One-time: put Steam in this title's environment so Steam Input works.

@@ -6,6 +6,8 @@ import Foundation
 public enum SteamServicesState: Sendable, Equatable {
     case ready
     case signingIn
+    /// The client is applying its own update. Killing it here just loops the window.
+    case updating
     /// Steam denied the command-line login and wants a fresh code for this device.
     case needsGuardCode
     case needsAccount
@@ -38,11 +40,29 @@ public struct SteamServices: Sendable {
 
     /// True when a Steam client is already talking to this prefix.
     public static func isRunning(prefix: URL) -> Bool {
-        let pidFile = prefix.appendingPathComponent("drive_c/users/steamuser/steam-running")
-        guard let text = try? String(contentsOf: pidFile, encoding: .utf8),
-              let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        isClientAlive(prefix: prefix)
+    }
+
+    /// `ProcessHandle` dies when Steam re-execs itself to apply an update, but
+    /// `steam.exe` is still there. Match this prefix's own binary so another title
+    /// or the real Steam client is never counted.
+    public static func isClientAlive(prefix: URL) -> Bool {
+        guard let exe = clientExe(prefix: prefix) else { return false }
+        return !matchingPids(path: exe.path).isEmpty
+    }
+
+    /// Steam's updater window is its own process. Play used to treat a stale
+    /// "Account Logon Denied" from the last session as a reason to kill and
+    /// relaunch every couple of seconds, which closed that window as soon as it
+    /// appeared. An in-progress bootstrap download is not a failed login.
+    public static func isUpdating(prefix: URL) -> Bool {
+        guard let session = lastLogSession(prefix: prefix, file: "bootstrap_log.txt", marker: "Startup -")
         else { return false }
-        return kill(pid, 0) == 0
+        guard updateInProgress(session) else { return false }
+        if isClientAlive(prefix: prefix) { return true }
+        // Steam exits and relaunches itself mid-update. A short dead gap is still
+        // an update, not a cue to spawn another `-login`.
+        return isRecent(session, within: 8)
     }
 
     public func downloadInstaller() async throws -> URL {
@@ -144,7 +164,13 @@ public struct SteamServices: Sendable {
     /// "Account Logon Denied" and wants its own one-time code. Steam's window paints
     /// black here, so that has to surface in Mogged instead — this reads the client's
     /// own `console_log.txt` to notice.
+    ///
+    /// A previous session's denial must not apply while Steam is still updating or
+    /// has started a newer boot than that log: those are the cases where Play used
+    /// to kill the updater window in a loop.
     public static func needsGuardCode(prefix: URL) -> Bool {
+        if isUpdating(prefix: prefix) { return false }
+        if isStarting(prefix: prefix) { return false }
         guard let dir = clientExe(prefix: prefix)?.deletingLastPathComponent(),
               let log = try? String(contentsOf: dir.appendingPathComponent("logs/console_log.txt"), encoding: .utf8)
         else { return false }
@@ -153,6 +179,16 @@ public struct SteamServices: Sendable {
         return session.contains("LogonFailure Account Logon Denied")
             || session.contains("LogonFailure Invalid Login Auth Code")
             || session.contains("LogonFailure Account Login Denied Need Two Factor")
+    }
+
+    /// Last updater boot is newer than the last console session, so login has
+    /// not been attempted yet this run.
+    public static func isStarting(prefix: URL) -> Bool {
+        let boot = lastLogSession(prefix: prefix, file: "bootstrap_log.txt", marker: "Startup -")
+        let console = lastLogSession(prefix: prefix, file: "console_log.txt", marker: "Client version:")
+        guard let bootTime = firstTimestamp(in: boot ?? ""), !bootTime.isEmpty else { return false }
+        guard let consoleTime = firstTimestamp(in: console ?? "") else { return true }
+        return bootTime > consoleTime
     }
 
     /// Start Steam so SteamAPI_Init and Steam Input can attach.
@@ -174,4 +210,78 @@ public struct SteamServices: Sendable {
         )
         return try ProcessHandle.spawn(plan)
     }
+
+    static func matchingPids(path: String) -> [Int32] {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
+        proc.arguments = ["-f", regexEscaped(path)]
+        let pipe = Pipe()
+        proc.standardOutput = pipe
+        proc.standardError = FileHandle.nullDevice
+        do {
+            try proc.run()
+            proc.waitUntilExit()
+        } catch {
+            return []
+        }
+        let text = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        return text.split(separator: "\n").compactMap { Int32($0.trimmingCharacters(in: .whitespaces)) }
+    }
+
+    static func lastLogSession(prefix: URL, file: String, marker: String) -> String? {
+        guard let dir = clientExe(prefix: prefix)?.deletingLastPathComponent(),
+              let log = try? String(contentsOf: dir.appendingPathComponent("logs/\(file)"), encoding: .utf8),
+              !log.isEmpty
+        else { return nil }
+        return log.components(separatedBy: marker).last ?? log
+    }
+
+    static func updateInProgress(_ session: String) -> Bool {
+        let downloading = session.contains("Downloading update")
+            || session.contains("Extracting package")
+            || session.contains("Installing update")
+            || (session.contains("Package file") && session.contains("missing"))
+        guard downloading else { return false }
+        return !session.contains("Verification complete")
+            && !session.contains("Update complete")
+            && !session.contains("Nothing to do")
+    }
+
+    static func isRecent(_ session: String, within seconds: TimeInterval) -> Bool {
+        guard let stamp = lastTimestamp(in: session),
+              let date = logDate.date(from: stamp)
+        else { return false }
+        return Date().timeIntervalSince(date) < seconds
+    }
+
+    static func firstTimestamp(in text: String) -> String? {
+        timestamps(in: text).first
+    }
+
+    static func lastTimestamp(in text: String) -> String? {
+        timestamps(in: text).last
+    }
+
+    static func logDateString(_ date: Date) -> String {
+        logDate.string(from: date)
+    }
+
+    private static func timestamps(in text: String) -> [String] {
+        let regex = try? NSRegularExpression(pattern: #"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]"#)
+        let ns = text as NSString
+        let range = NSRange(location: 0, length: ns.length)
+        guard let regex else { return [] }
+        return regex.matches(in: text, range: range).compactMap { match in
+            guard match.numberOfRanges > 1 else { return nil }
+            return ns.substring(with: match.range(at: 1))
+        }
+    }
+
+    private static let logDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        formatter.timeZone = .current
+        return formatter
+    }()
 }

@@ -30,6 +30,7 @@ final class AppModel {
     var steamServicesReady = false
     var steamSignedIn = false
     var steamNeedsGuardCode = false
+    var steamUpdating = false
 
     enum LogTab: String, CaseIterable, Identifiable {
         case errors
@@ -193,29 +194,47 @@ final class AppModel {
             switch state {
             case .ready:
                 steamNeedsGuardCode = false
+                steamUpdating = false
                 return true
             case .signingIn:
+                steamUpdating = false
+                return nil
+            case .updating:
+                steamNeedsGuardCode = false
+                steamUpdating = true
+                rememberNotice("Steam is updating for \(entry.profile.displayName). Leave that window open.")
                 return nil
             case .needsGuardCode:
                 steamNeedsGuardCode = true
+                steamUpdating = false
                 rememberError(MoggedError.steamGuardCodeNeeded.userMessage)
                 return false
             case .needsAccount:
+                steamUpdating = false
                 rememberError(MoggedError.steamAccountNeeded.userMessage)
                 return false
             case .notInstalled:
+                steamUpdating = false
                 rememberError(MoggedError.steamServicesMissing.userMessage)
                 return false
             }
         }
 
         if let done = handle(first) { return done }
-
-        rememberNotice("Signing in to Steam for \(entry.profile.displayName)…")
-        for _ in 0..<Self.steamSignInPolls {
+        if first != .updating {
+            rememberNotice("Signing in to Steam for \(entry.profile.displayName)…")
+        }
+        var polls = Self.steamSignInPolls
+        var seen = 0
+        while seen < polls {
             try? await Task.sleep(for: .seconds(2))
+            seen += 1
             do {
-                if let done = handle(try await supervisor.pollSteamLogin(profile: entry.profile)) {
+                let state = try await supervisor.pollSteamLogin(profile: entry.profile)
+                if state == .updating {
+                    polls = max(polls, Self.steamUpdatePolls)
+                }
+                if let done = handle(state) {
                     if done { rememberNotice("Steam ready. Starting \(entry.profile.displayName)…") }
                     return done
                 }
@@ -232,6 +251,7 @@ final class AppModel {
     }
 
     private static let steamSignInPolls = 45
+    private static let steamUpdatePolls = 180
 
     func stop(_ entry: LibraryEntry) async {
         banner = nil
