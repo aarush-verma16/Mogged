@@ -312,16 +312,30 @@ public actor RuntimeSupervisor {
         // is what made the window open and immediately close on every Play poll.
         if SteamServices.isUpdating(prefix: prefix) { return .updating }
 
-        let alive = SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true
-        let denied = SteamServices.needsGuardCode(prefix: prefix)
-        let hasCode = !credentials.normalizedGuardCode.isEmpty
+        let cmd = SteamServices.commandLineLoginExe(prefix: prefix)
+        var authorized = SteamServices.hasSentry(prefix: prefix)
+        if let cmd, !authorized {
+            if SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true {
+                stopSteamClient(prefix: prefix)
+            }
+            let result = services.loginWithCommandLine(
+                prefix: prefix,
+                config: config,
+                cmd: cmd,
+                credentials: credentials
+            )
+            authorized = SteamServices.hasSentry(prefix: prefix) || result == .signedIn
+            if authorized {
+                telemetry.record(TelemetryEvent(event: "steam.cmd.signedin", titleId: profile.id))
+            } else {
+                telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
+                return .needsGuardCode
+            }
+        }
 
-        // Play is the only way to submit a code. If one is in hand and Steam is
-        // not mid-update, start a fresh login with it — even when the last log
-        // still says denied, which is the normal case after the first attempt.
-        if hasCode {
-            if alive { stopSteamClient(prefix: prefix) }
-            SteamServices.beginLoginAttempt(prefix: prefix)
+        if authorized {
+            let alive = SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true
+            if alive { return .signingIn }
             return spawnSteam(
                 profile: profile,
                 prefix: prefix,
@@ -331,21 +345,16 @@ public actor RuntimeSupervisor {
             )
         }
 
-        if alive && !forceRetry {
-            if denied {
-                telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
-                stopSteamClient(prefix: prefix)
-                return .needsGuardCode
-            }
-            return .signingIn
-        }
-
+        // No SteamCMD in this environment (tests, or a prefix that never got it):
+        // fall back to steam.exe. It cannot consume a Guard code.
+        let alive = SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true
+        let denied = SteamServices.needsGuardCode(prefix: prefix)
         if denied && !forceRetry {
             telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
             stopSteamClient(prefix: prefix)
             return .needsGuardCode
         }
-
+        if alive && !forceRetry { return .signingIn }
         if alive { stopSteamClient(prefix: prefix) }
         SteamServices.beginLoginAttempt(prefix: prefix)
         return spawnSteam(
@@ -391,11 +400,14 @@ public actor RuntimeSupervisor {
         profile: TitleProfile,
         forceRetry: Bool = false,
         credentials: SteamCredentials? = nil
-    ) throws -> SteamServicesState {
+    ) async throws -> SteamServicesState {
         guard profile.settings?.needsSteamClient == true else { return .ready }
         let config = try configStore.resolve(discover: { probe.wineBinary() })
         let trees = try environment.ensure(for: profile.id)
         preparePrefix(prefix: trees.prefix, profile: profile, config: config)
+        if let exe = SteamServices.clientExe(prefix: trees.prefix) {
+            await services.ensureCommandLineLogin(steamDir: exe.deletingLastPathComponent())
+        }
         return startSteamServices(
             profile: profile,
             prefix: trees.prefix,
@@ -409,8 +421,8 @@ public actor RuntimeSupervisor {
     /// Steam again even though the last attempt was denied, so a lost, expired, or
     /// missed device-approval email gets a real second chance instead of Mogged
     /// quietly refusing to ever retry again. Does not interrupt an in-progress update.
-    public func retryPlaySignIn(profile: TitleProfile) throws -> SteamServicesState {
-        try prepareSteamServices(profile: profile, forceRetry: true)
+    public func retryPlaySignIn(profile: TitleProfile) async throws -> SteamServicesState {
+        try await prepareSteamServices(profile: profile, forceRetry: true)
     }
 
     public func steamSignedIn(profile: TitleProfile) -> Bool {
@@ -431,9 +443,10 @@ public actor RuntimeSupervisor {
         guard SteamServices.clientExe(prefix: prefix) != nil else { return .notInstalled }
         guard SteamCredentialStore.load(paths: paths) != nil else { return .needsAccount }
         if SteamServices.isUpdating(prefix: prefix) { return .updating }
+        if SteamServices.hasSentry(prefix: prefix) {
+            return .signingIn
+        }
         if SteamServices.needsGuardCode(prefix: prefix) {
-            // The login failed. Leaving Steam up is the blank black window — it
-            // keeps retrying and never becomes a usable login screen.
             stopSteamClient(prefix: prefix)
             return .needsGuardCode
         }
@@ -457,18 +470,16 @@ public actor RuntimeSupervisor {
         let trees = try environment.ensure(for: profile.id)
         preparePrefix(prefix: trees.prefix, profile: profile, config: config)
 
-        if SteamServices.clientExe(prefix: trees.prefix) != nil {
-            telemetry.record(TelemetryEvent(event: "steam.services.present", titleId: profile.id))
-            return
+        if SteamServices.clientExe(prefix: trees.prefix) == nil {
+            telemetry.record(TelemetryEvent(event: "steam.services.install", titleId: profile.id))
+            let installer = try await services.downloadInstaller()
+            try services.install(prefix: trees.prefix, config: config, installer: installer)
         }
 
-        telemetry.record(TelemetryEvent(event: "steam.services.install", titleId: profile.id))
-        let installer = try await services.downloadInstaller()
-        try services.install(prefix: trees.prefix, config: config, installer: installer)
-
-        guard SteamServices.clientExe(prefix: trees.prefix) != nil else {
+        guard let exe = SteamServices.clientExe(prefix: trees.prefix) else {
             throw MoggedError.installFailed("Couldn't add Steam for this game.")
         }
+        await services.ensureCommandLineLogin(steamDir: exe.deletingLastPathComponent())
         telemetry.record(TelemetryEvent(event: "steam.services.added", titleId: profile.id))
     }
 

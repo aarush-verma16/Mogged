@@ -462,6 +462,9 @@ public final class DepotInstaller: @unchecked Sendable {
         if line.contains("logged in ok") || (line.contains("waiting for user info") && !line.contains("failed")) {
             return .signedIn
         }
+        if line.contains("account logon denied") || line.contains("logon denied") {
+            return .needsGuard("Steam emailed a one-time code. You only need one. Paste the newest, then press Play.")
+        }
         if line.contains("two-factor") || line.contains("authenticator") || line.contains("mobile authenticator") {
             return .needsGuard("Open the Steam phone app, copy the Guard code, paste it here, then Install.")
         }

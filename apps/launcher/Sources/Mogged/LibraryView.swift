@@ -357,7 +357,7 @@ struct LibraryView: View {
                 }
             }
             if model.steamNeedsGuardCode {
-                Text("This is a different device check than Install's code above — Steam sees this game's Windows environment as a separate machine. Press \"Try again\", then watch email and the Steam Mobile app for a couple of minutes. Paste whatever code arrives above, then press Play.")
+                Text("One code, one time. Steam emails it when Play first tries to sign in. Paste the newest code above and press Play. After it works, you will not be asked again.")
                     .font(Theme.mono(10))
                     .foregroundStyle(Theme.muted)
             }
@@ -389,7 +389,7 @@ struct LibraryView: View {
 
     private var accountHint: String {
         if model.steamNeedsGuardCode {
-            return "Paste the code, then press Play. Play is what sends it."
+            return "You only need one code, once. Paste the newest email code, then press Play."
         }
         if !model.bannerIsError, model.banner != nil { return "Paste the code, then Install. It's saved on this Mac." }
         if !model.steamGuard.isEmpty { return "Code is saved. Change it only if Steam asks again." }

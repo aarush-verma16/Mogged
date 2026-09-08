@@ -195,8 +195,8 @@ final class AppModel {
         defer { isBusy = false }
         saveCredentials()
         rememberNotice(
-            "Asking Steam to check this Mac again for \(entry.profile.displayName). "
-                + "Watch your email and the Steam Mobile app for the next couple of minutes."
+            "Asking Steam again for \(entry.profile.displayName). "
+                + "If it emails a code, paste only the newest one, then press Play once."
         )
         do {
             let first = try await supervisor.retryPlaySignIn(profile: entry.profile)

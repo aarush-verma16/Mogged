@@ -154,6 +154,11 @@ func loginResultFlagsBadPasswordAndUser() {
     #expect(DepotInstaller.loginResult(from: "FAILED (AccountNotFound)") == .badUser)
     #expect(DepotInstaller.loginResult(from: "FAILED login with result code Rate Limit Exceeded") == .rateLimited)
     #expect(DepotInstaller.loginResult(from: "Logged in OK") == .signedIn)
+    if case .needsGuard = DepotInstaller.loginResult(from: "ERROR (Account Logon Denied)") {
+        #expect(Bool(true))
+    } else {
+        #expect(Bool(false), "Account Logon Denied should ask for a Guard code")
+    }
     #expect(DepotInstaller.loginResult(from: "Connecting anonymously to Steam Public") == .unknown)
     #expect(!DepotInstaller.loginResult(from: "Steam sent a code to your email").isAuthFailure)
 }

@@ -94,20 +94,41 @@ public struct SteamServices: Sendable {
     /// process and hands frames over a shared swapchain that Wine has no path for, so
     /// the window paints black. Steam's `-cef-*` flags do not reach Chromium (verified:
     /// steamwebhelper still starts `--type=gpu-process`), so there is nothing to pass.
-    /// Mogged already has the account, so it signs in on the command line and keeps
-    /// Steam hidden — the player never sees it.
+    ///
+    /// `steam.exe -login` does **not** accept a Guard code (that is SteamCMD only).
+    /// Passing one is ignored, Steam emails a *new* code, and the one the player
+    /// just pasted is already stale. Device trust is created by `steamcmd.exe`
+    /// in this same folder (`loginWithCommandLine`), then `steam.exe` starts
+    /// without a code.
     public static func startArguments(exe: URL, credentials: SteamCredentials) -> [String] {
-        var args = [
+        [
             exe.path,
             "-silent",
             "-no-browser",
             "-no-cef-sandbox",
             "-login", credentials.user, credentials.password,
         ]
-        if !credentials.guardCode.isEmpty {
+    }
+
+    public static func cmdLoginArguments(cmd: URL, credentials: SteamCredentials) -> [String] {
+        var args = [cmd.path, "+login", credentials.user, credentials.password]
+        if !credentials.normalizedGuardCode.isEmpty {
             args.append(credentials.normalizedGuardCode)
         }
+        args.append("+quit")
         return args
+    }
+
+    public static func commandLineLoginExe(prefix: URL) -> URL? {
+        guard let dir = clientExe(prefix: prefix)?.deletingLastPathComponent() else { return nil }
+        let url = dir.appendingPathComponent("steamcmd.exe")
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    public static func hasSentry(prefix: URL) -> Bool {
+        guard let dir = clientExe(prefix: prefix)?.deletingLastPathComponent() else { return false }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        return names.contains { $0.lowercased().hasPrefix("ssfn") }
     }
 
     /// `SteamAPI_Init` reads this key. Non-zero means a real signed-in session, which
@@ -231,6 +252,86 @@ public struct SteamServices: Sendable {
             logURL: paths.logs.appendingPathComponent("steam-services.log")
         )
         return try ProcessHandle.spawn(plan)
+    }
+
+    /// Drop Windows SteamCMD next to `steam.exe` so a Guard code can authorize
+    /// this environment. `steam.exe` cannot take that code itself.
+    public func ensureCommandLineLogin(steamDir: URL) async {
+        let dest = steamDir.appendingPathComponent("steamcmd.exe")
+        let driveC = steamDir.deletingLastPathComponent().deletingLastPathComponent()
+        let toolsDir = driveC.appendingPathComponent("tools/steamcmd")
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: dest.path) {
+            let tools = toolsDir.appendingPathComponent("steamcmd.exe")
+            let cached = paths.caches.appendingPathComponent("steamcmd.exe")
+            if fm.fileExists(atPath: tools.path) {
+                try? fm.copyItem(at: tools, to: dest)
+            } else if fm.fileExists(atPath: cached.path) {
+                try? fm.copyItem(at: cached, to: dest)
+            }
+        }
+        for name in ["steamconsole.dll", "steamconsole64.dll"] {
+            let target = steamDir.appendingPathComponent(name)
+            let source = toolsDir.appendingPathComponent(name)
+            if !fm.fileExists(atPath: target.path), fm.fileExists(atPath: source.path) {
+                try? fm.copyItem(at: source, to: target)
+            }
+        }
+    }
+
+    /// SteamCMD accepts `+login user password code`. One successful run writes
+    /// `ssfn*` in this folder; `steam.exe` then trusts the device with no more codes.
+    /// A first run often exits after self-update, before login — retry so that is
+    /// not mistaken for "need another code".
+    public func loginWithCommandLine(
+        prefix: URL,
+        config: BackendConfig,
+        cmd: URL,
+        credentials: SteamCredentials
+    ) -> DepotInstaller.LoginResult {
+        let logURL = paths.logs.appendingPathComponent("steam-cmd-login.log")
+        var last: DepotInstaller.LoginResult = .unknown
+        for _ in 0..<3 {
+            try? Data().write(to: logURL)
+            let plan = LaunchPlan(
+                executable: config.wineURL,
+                arguments: Self.cmdLoginArguments(cmd: cmd, credentials: credentials),
+                environment: [
+                    "WINEPREFIX": prefix.path,
+                    "WINEDEBUG": "-all",
+                ],
+                workingDirectory: cmd.deletingLastPathComponent(),
+                logURL: logURL
+            )
+            guard let handle = try? ProcessHandle.spawn(plan) else { return .unknown }
+            _ = handle.waitUntilExit(timeout: 240)
+            if Self.hasSentry(prefix: prefix) { return .signedIn }
+            let log = (try? String(contentsOf: logURL, encoding: .utf8)) ?? ""
+            last = DepotInstaller.loginResult(from: log)
+            switch last {
+            case .signedIn, .needsGuard, .badGuard, .badUser, .badPassword, .rateLimited:
+                return last
+            case .failed, .unknown:
+                if Self.commandLineStillBootstrapping(log) { continue }
+                return last
+            }
+        }
+        return last
+    }
+
+    static func commandLineStillBootstrapping(_ log: String) -> Bool {
+        let line = log.lowercased()
+        let updating = line.contains("downloading update")
+            || line.contains("installing update")
+            || line.contains("extracting package")
+            || line.contains("checking for available updates")
+            || line.contains("uncompressing")
+        let attemptedLogin = line.contains("logging in")
+            || line.contains("logon")
+            || line.contains("logged in")
+            || line.contains("account logon")
+            || line.contains("waiting for user info")
+        return updating && !attemptedLogin
     }
 
     static func matchingPids(path: String) -> [Int32] {

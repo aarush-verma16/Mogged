@@ -43,7 +43,7 @@ public enum MoggedError: Error, Equatable {
         case .steamSignInNeeded:
             return "Steam didn't finish signing in for this game. Press Play again."
         case .steamGuardCodeNeeded:
-            return "Steam needs a one-time code for this Mac. Check your email or Steam Mobile app, paste the code below, then press Play."
+            return "Steam emailed a one-time code. You only need one. Paste the newest code below, then press Play."
         case .steamAccountNeeded:
             return "This game needs your Steam account. Enter it above, then press Play."
         case .steamServicesMissing:

@@ -134,7 +134,8 @@ struct LaunchPathTests {
 
         #expect(signIn.first == exe.path)
         #expect(signIn.contains("-login"))
-        #expect(signIn.suffix(3) == ["player", "secret", "ABCDE"])
+        #expect(signIn.suffix(2) == ["player", "secret"])
+        #expect(!signIn.contains("ABCDE"))
         // Steam's window paints black under this stack, so it never comes up.
         #expect(signIn.contains("-silent"))
         #expect(signIn.contains("-no-browser"))
@@ -145,11 +146,17 @@ struct LaunchPathTests {
         )
         #expect(noGuard.suffix(2) == ["player", "secret"])
 
-        let pasted = SteamServices.startArguments(
-            exe: exe,
+        let cmd = URL(fileURLWithPath: "/tmp/steamcmd.exe")
+        let pasted = SteamServices.cmdLoginArguments(
+            cmd: cmd,
             credentials: SteamCredentials(user: "player", password: "secret", guardCode: " ab 12c ")
         )
-        #expect(pasted.last == "AB12C")
+        #expect(pasted.contains("+login"))
+        #expect(pasted.contains("AB12C"))
+        #expect(pasted.last == "+quit")
+
+        #expect(SteamServices.commandLineStillBootstrapping("Downloading update...\nExtracting package..."))
+        #expect(!SteamServices.commandLineStillBootstrapping("Downloading update...\nERROR (Account Logon Denied)"))
     }
 
     @Test
@@ -303,6 +310,7 @@ struct LaunchPathTests {
         #expect(SteamServices.needsGuardCode(prefix: prefix))
 
         SteamCredentialStore.save(user: "player", password: "secret", guardCode: "12345", paths: paths)
+        try Data().write(to: steamDir.appendingPathComponent("steamcmd.exe"))
         let started = try await supervisor.prepareSteamServices(profile: profile)
         #expect(started == .signingIn)
         // The previous denial must not still be the live session or Play aborts
@@ -356,6 +364,7 @@ struct LaunchPathTests {
         SteamCredentialStore.save(user: "player", password: "secret", guardCode: "12345", paths: paths)
         // Polling must not spawn another client — that is the updater-window kill loop.
         #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
+        try Data().write(to: steamDir.appendingPathComponent("steamcmd.exe"))
         let retried = try await supervisor.prepareSteamServices(profile: profile)
         #expect(retried == .signingIn)
         try await Task.sleep(for: .milliseconds(700))
@@ -701,11 +710,24 @@ private func writeFakeSteamClientWine(in dir: URL) throws -> URL {
     #!/bin/sh
     echo "$*" >> "$(dirname "$0")/invocations.txt"
     case "$1" in
+      *steamcmd.exe)
+        STEAM="$WINEPREFIX/drive_c/Program Files (x86)/Steam"
+        mkdir -p "$STEAM"
+        if [ "$5" != "+quit" ] && [ -n "$5" ]; then
+          echo dummy > "$STEAM/ssfn_ok"
+          echo "Waiting for user info...OK"
+        else
+          echo "Please check your email for the message from Steam"
+          echo "ERROR (Account Logon Denied)"
+        fi
+        exit 0
+        ;;
       *steam.exe)
         LOGS="$WINEPREFIX/drive_c/Program Files (x86)/Steam/logs"
+        STEAM="$WINEPREFIX/drive_c/Program Files (x86)/Steam"
         mkdir -p "$LOGS"
         STAMP=$(date +%s)
-        if [ "$#" -ge 8 ]; then
+        if ls "$STEAM"/ssfn* >/dev/null 2>&1; then
           printf '[Software\\\\Valve\\\\Steam\\\\ActiveProcess]\n"ActiveUser"=dword:00000001\n' > "$WINEPREFIX/user.reg"
           printf '[%s] Client version: 1\n[%s] Connected\n' "$STAMP" "$STAMP" >> "$LOGS/console_log.txt"
         else
