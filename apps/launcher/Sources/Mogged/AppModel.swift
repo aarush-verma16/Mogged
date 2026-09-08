@@ -134,10 +134,13 @@ final class AppModel {
         }
     }
 
+    /// Play is the submit button. Always persist the code before Steam reads it —
+    /// SwiftUI's onChange can still be pending when Play is pressed.
     func play(_ entry: LibraryEntry) async {
         banner = nil
         isBusy = true
         defer { isBusy = false }
+        saveCredentials()
         do {
             guard await waitForSteam(entry) else { return }
             _ = try await supervisor.launch(profile: entry.profile)
@@ -155,7 +158,16 @@ final class AppModel {
     private func waitForSteam(_ entry: LibraryEntry) async -> Bool {
         guard entry.profile.settings?.needsSteamClient == true else { return true }
         do {
-            let first = try await supervisor.prepareSteamServices(profile: entry.profile)
+            var first = try await supervisor.prepareSteamServices(
+                profile: entry.profile,
+                credentials: playCredentials
+            )
+            if first == .needsGuardCode, playCredentials?.normalizedGuardCode.isEmpty == false {
+                first = try await supervisor.prepareSteamServices(
+                    profile: entry.profile,
+                    credentials: playCredentials
+                )
+            }
             return await pollSteam(entry, first: first)
         } catch let error as MoggedError {
             rememberError(error.userMessage)
@@ -164,6 +176,12 @@ final class AppModel {
             rememberError(String(describing: error))
             return false
         }
+    }
+
+    private var playCredentials: SteamCredentials? {
+        let user = steamUser.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !user.isEmpty, !steamPassword.isEmpty else { return nil }
+        return SteamCredentials(user: user, password: steamPassword, guardCode: steamGuard)
     }
 
     /// "Try Play sign-in again": a plain Play click never re-asks Steam once denied
@@ -175,6 +193,7 @@ final class AppModel {
         banner = nil
         isBusy = true
         defer { isBusy = false }
+        saveCredentials()
         rememberNotice(
             "Asking Steam to check this Mac again for \(entry.profile.displayName). "
                 + "Watch your email and the Steam Mobile app for the next couple of minutes."
@@ -226,11 +245,23 @@ final class AppModel {
         }
         var polls = Self.steamSignInPolls
         var seen = 0
+        var appliedCode = first == .signingIn && playCredentials?.normalizedGuardCode.isEmpty == false
         while seen < polls {
             try? await Task.sleep(for: .seconds(2))
             seen += 1
             do {
-                let state = try await supervisor.pollSteamLogin(profile: entry.profile)
+                var state = try await supervisor.pollSteamLogin(profile: entry.profile)
+                if state == .needsGuardCode,
+                   playCredentials?.normalizedGuardCode.isEmpty == false,
+                   !appliedCode
+                {
+                    appliedCode = true
+                    saveCredentials()
+                    state = try await supervisor.prepareSteamServices(
+                        profile: entry.profile,
+                        credentials: playCredentials
+                    )
+                }
                 if state == .updating {
                     polls = max(polls, Self.steamUpdatePolls)
                 }

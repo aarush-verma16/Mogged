@@ -144,6 +144,12 @@ struct LaunchPathTests {
             credentials: SteamCredentials(user: "player", password: "secret")
         )
         #expect(noGuard.suffix(2) == ["player", "secret"])
+
+        let pasted = SteamServices.startArguments(
+            exe: exe,
+            credentials: SteamCredentials(user: "player", password: "secret", guardCode: " ab 12c ")
+        )
+        #expect(pasted.last == "AB12C")
     }
 
     @Test
@@ -273,6 +279,50 @@ struct LaunchPathTests {
         #expect(try await supervisor.pollSteamLogin(profile: profile) == .needsGuardCode)
         let after = (try? String(contentsOf: invocations, encoding: .utf8)) ?? ""
         #expect(before == after)
+    }
+
+    @Test
+    func aFreshCodeClearsThePreviousDenialBeforeSteamRuns() async throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let (supervisor, paths) = try makeSupervisor(home: home, wine: nil)
+        let wine = try writeFakeSteamClientWine(in: home)
+        try BackendConfigStore(paths: paths).save(BackendConfig(wine: wine.path))
+
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        let prefix = WineEnvironment(paths: paths).prefixURL(for: profile.id)
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir, withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "", paths: paths)
+
+        _ = try await supervisor.prepareSteamServices(profile: profile)
+        try await Task.sleep(for: .milliseconds(700))
+        #expect(SteamServices.needsGuardCode(prefix: prefix))
+
+        SteamCredentialStore.save(user: "player", password: "secret", guardCode: "12345", paths: paths)
+        let started = try await supervisor.prepareSteamServices(profile: profile)
+        #expect(started == .signingIn)
+        // The previous denial must not still be the live session or Play aborts
+        // the new attempt before Steam can use the code.
+        #expect(try await supervisor.pollSteamLogin(profile: profile) != .needsGuardCode)
+    }
+
+    @Test
+    func beginLoginAttemptHidesTheLastDenial() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let prefix = home.appendingPathComponent("prefix")
+        let steamDir = prefix.appendingPathComponent("drive_c/Program Files (x86)/Steam")
+        try FileManager.default.createDirectory(at: steamDir.appendingPathComponent("logs"), withIntermediateDirectories: true)
+        try Data().write(to: steamDir.appendingPathComponent("steam.exe"))
+        try """
+        [2026-09-05 15:52:02] Client version: 1788400362
+        [2026-09-05 15:52:13] LogonFailure Account Logon Denied
+        """.write(to: steamDir.appendingPathComponent("logs/console_log.txt"), atomically: true, encoding: .utf8)
+        #expect(SteamServices.needsGuardCode(prefix: prefix))
+        SteamServices.beginLoginAttempt(prefix: prefix)
+        #expect(!SteamServices.needsGuardCode(prefix: prefix))
     }
 
     @Test
@@ -412,9 +462,9 @@ struct LaunchPathTests {
         let paths = RuntimePaths(root: home)
 
         #expect(SteamCredentialStore.load(paths: paths) == nil)
-        SteamCredentialStore.save(user: " player ", password: "secret", guardCode: "ABCDE", paths: paths)
+        SteamCredentialStore.save(user: " player ", password: "secret", guardCode: " a b c 1 2 ", paths: paths)
         let loaded = SteamCredentialStore.load(paths: paths)
-        #expect(loaded == SteamCredentials(user: "player", password: "secret", guardCode: "ABCDE"))
+        #expect(loaded == SteamCredentials(user: "player", password: "secret", guardCode: "ABC12"))
 
         let mode = try FileManager.default.attributesOfItem(
             atPath: SteamCredentialStore.fileURL(paths: paths).path

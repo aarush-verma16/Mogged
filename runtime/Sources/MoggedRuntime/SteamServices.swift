@@ -105,7 +105,7 @@ public struct SteamServices: Sendable {
             "-login", credentials.user, credentials.password,
         ]
         if !credentials.guardCode.isEmpty {
-            args.append(credentials.guardCode)
+            args.append(credentials.normalizedGuardCode)
         }
         return args
     }
@@ -146,6 +146,21 @@ public struct SteamServices: Sendable {
         proc.arguments = ["-f", regexEscaped(exe.path)]
         try? proc.run()
         proc.waitUntilExit()
+    }
+
+    /// Play with a code must not see the previous attempt's "Account Logon Denied".
+    /// That leftover line is what made a just-entered code look like it had already
+    /// failed before Steam ever received it.
+    public static func beginLoginAttempt(prefix: URL) {
+        guard let dir = clientExe(prefix: prefix)?.deletingLastPathComponent() else { return }
+        let logs = dir.appendingPathComponent("logs")
+        try? FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
+        let console = logs.appendingPathComponent("console_log.txt")
+        let previous = logs.appendingPathComponent("console_log.prev.txt")
+        if FileManager.default.fileExists(atPath: console.path) {
+            try? FileManager.default.removeItem(at: previous)
+            try? FileManager.default.moveItem(at: console, to: previous)
+        }
     }
 
     private static func regexEscaped(_ path: String) -> String {

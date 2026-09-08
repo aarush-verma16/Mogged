@@ -10,6 +10,12 @@ public struct SteamCredentials: Sendable, Equatable {
         self.password = password
         self.guardCode = guardCode
     }
+
+    /// Email codes pick up spaces and lowercase when pasted. Steam wants the
+    /// compact uppercase token.
+    public var normalizedGuardCode: String {
+        guardCode.filter { !$0.isWhitespace }.uppercased()
+    }
 }
 
 /// A local 0600 file, not the Keychain: an unsigned dev rebuild re-prompts on every
@@ -27,8 +33,9 @@ public enum SteamCredentialStore {
         paths: RuntimePaths = .standard()
     ) {
         let user = user.trimmingCharacters(in: .whitespacesAndNewlines)
+        let code = guardCode.filter { !$0.isWhitespace }.uppercased()
         guard !user.isEmpty, !password.isEmpty else { return }
-        guard let data = encode(user: user, password: password, guardCode: guardCode).data(using: .utf8)
+        guard let data = encode(user: user, password: password, guardCode: code).data(using: .utf8)
         else { return }
         let url = fileURL(paths: paths)
         try? FileManager.default.createDirectory(at: paths.root, withIntermediateDirectories: true)

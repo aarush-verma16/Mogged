@@ -289,7 +289,8 @@ public actor RuntimeSupervisor {
         profile: TitleProfile,
         prefix: URL,
         config: BackendConfig,
-        forceRetry: Bool = false
+        forceRetry: Bool = false,
+        credentials: SteamCredentials? = nil
     ) -> SteamServicesState {
         if SteamServices.isSignedIn(prefix: prefix) { return .ready }
 
@@ -297,7 +298,7 @@ public actor RuntimeSupervisor {
             telemetry.record(TelemetryEvent(event: "steam.services.missing", titleId: profile.id))
             return .notInstalled
         }
-        guard let credentials = SteamCredentialStore.load(paths: paths) else {
+        guard let credentials = credentials ?? SteamCredentialStore.load(paths: paths) else {
             telemetry.record(TelemetryEvent(event: "steam.services.noaccount", titleId: profile.id))
             return .needsAccount
         }
@@ -308,9 +309,24 @@ public actor RuntimeSupervisor {
 
         let alive = SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true
         let denied = SteamServices.needsGuardCode(prefix: prefix)
-        let retryWithCode = denied && !credentials.guardCode.isEmpty
+        let hasCode = !credentials.normalizedGuardCode.isEmpty
 
-        if alive && !forceRetry && !retryWithCode {
+        // Play is the only way to submit a code. If one is in hand and Steam is
+        // not mid-update, start a fresh login with it — even when the last log
+        // still says denied, which is the normal case after the first attempt.
+        if hasCode {
+            if alive { stopSteamClient(prefix: prefix) }
+            SteamServices.beginLoginAttempt(prefix: prefix)
+            return spawnSteam(
+                profile: profile,
+                prefix: prefix,
+                config: config,
+                exe: exe,
+                credentials: credentials
+            )
+        }
+
+        if alive && !forceRetry {
             if denied {
                 telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
                 return .needsGuardCode
@@ -318,13 +334,29 @@ public actor RuntimeSupervisor {
             return .signingIn
         }
 
-        if denied && credentials.guardCode.isEmpty && !forceRetry {
+        if denied && !forceRetry {
             telemetry.record(TelemetryEvent(event: "steam.services.needsguard", titleId: profile.id))
             return .needsGuardCode
         }
 
         if alive { stopSteamClient(prefix: prefix) }
+        SteamServices.beginLoginAttempt(prefix: prefix)
+        return spawnSteam(
+            profile: profile,
+            prefix: prefix,
+            config: config,
+            exe: exe,
+            credentials: credentials
+        )
+    }
 
+    private func spawnSteam(
+        profile: TitleProfile,
+        prefix: URL,
+        config: BackendConfig,
+        exe: URL,
+        credentials: SteamCredentials
+    ) -> SteamServicesState {
         do {
             steamClient = try services.start(
                 prefix: prefix,
@@ -347,12 +379,22 @@ public actor RuntimeSupervisor {
 
     /// Called by Play before launching: brings Steam up and reports sign-in state so
     /// the app can show progress while Steam works.
-    public func prepareSteamServices(profile: TitleProfile, forceRetry: Bool = false) throws -> SteamServicesState {
+    public func prepareSteamServices(
+        profile: TitleProfile,
+        forceRetry: Bool = false,
+        credentials: SteamCredentials? = nil
+    ) throws -> SteamServicesState {
         guard profile.settings?.needsSteamClient == true else { return .ready }
         let config = try configStore.resolve(discover: { probe.wineBinary() })
         let trees = try environment.ensure(for: profile.id)
         preparePrefix(prefix: trees.prefix, profile: profile, config: config)
-        return startSteamServices(profile: profile, prefix: trees.prefix, config: config, forceRetry: forceRetry)
+        return startSteamServices(
+            profile: profile,
+            prefix: trees.prefix,
+            config: config,
+            forceRetry: forceRetry,
+            credentials: credentials
+        )
     }
 
     /// Explicit "try again" for Play sign-in: unlike a plain Play click, this asks

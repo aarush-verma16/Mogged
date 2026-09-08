@@ -389,7 +389,7 @@ struct LibraryView: View {
 
     private var accountHint: String {
         if model.steamNeedsGuardCode {
-            return "Whichever code arrives, paste it here — it's shared with Install."
+            return "Paste the code, then press Play. Play is what sends it."
         }
         if !model.bannerIsError, model.banner != nil { return "Paste the code, then Install. It's saved on this Mac." }
         if !model.steamGuard.isEmpty { return "Code is saved. Change it only if Steam asks again." }
