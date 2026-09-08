@@ -36,6 +36,7 @@ struct LibraryView: View {
             Spacer()
             MonoStat(label: "wine", value: model.runtime.wine ?? "missing", ok: model.runtime.wineReady)
             MonoStat(label: "steam", value: steamValue, ok: model.runtime.steamRunning)
+            MonoStat(label: "pad", value: model.controllerLabel, ok: model.controllerConnected)
             MonoStat(label: "apps", value: "\(model.runtime.steamAppCount)", ok: model.runtime.steamPresent)
             if let inst = model.install, inst.running {
                 MonoStat(label: "install", value: inst.percentLabel, ok: true)
@@ -154,6 +155,13 @@ struct LibraryView: View {
                 if entry.profile.settings?.needsSteamClient == true {
                     playSignInBar(entry)
                 }
+                if entry.profile.controllerRequired == true, !model.controllerConnected {
+                    Text("Plug in a wired controller, then Play. This game needs one.")
+                        .font(Theme.mono(10))
+                        .foregroundStyle(Theme.muted)
+                        .padding(.horizontal, Theme.Space.x3)
+                        .padding(.bottom, Theme.Space.x2)
+                }
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: Theme.Space.x1) {
@@ -167,6 +175,7 @@ struct LibraryView: View {
                         KV("ready", entry.canPlay ? "yes" : "no")
                         KV("safe", entry.profile.settings?.isSafeBoot == true ? "yes · first boot" : "heavy")
                         KV("steaminput", steamInputLabel(entry))
+                        KV("controller", controllerLabel(entry))
                         KV("window", windowLabel(entry))
                         KV("disk", "\(entry.profile.settings?.requiredFreeGB ?? 80) GB budget")
 
@@ -378,6 +387,12 @@ struct LibraryView: View {
         if !model.steamServicesReady { return "needs Steam · Add Steam" }
         if model.steamNeedsGuardCode { return "needs a code · see below" }
         return model.steamSignedIn ? "ready · signed in" : "signs in on Play"
+    }
+
+    private func controllerLabel(_ entry: LibraryEntry) -> String {
+        if model.controllerConnected { return model.controllerLabel }
+        if entry.profile.controllerRequired == true { return "plug in a wired pad" }
+        return "none"
     }
 
     private var showCodeField: Bool {

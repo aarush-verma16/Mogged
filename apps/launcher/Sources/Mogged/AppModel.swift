@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import GameController
 import MoggedRuntime
 import Observation
 
@@ -31,6 +32,8 @@ final class AppModel {
     var steamSignedIn = false
     var steamNeedsGuardCode = false
     var steamUpdating = false
+    var controllerLabel = "none"
+    var controllerConnected = false
 
     enum LogTab: String, CaseIterable, Identifiable {
         case errors
@@ -90,6 +93,7 @@ final class AppModel {
             loadFailed = false
             runningIds = Set(await supervisor.runningTitleIds())
             runtime = await supervisor.inspectRuntime()
+            refreshControllers(hid: runtime.controller)
             if let entry = selected {
                 session = await supervisor.inspectSession(profile: entry.profile, install: entry.install)
                 gameLog = await supervisor.gameLogTail(titleId: entry.id)
@@ -467,6 +471,21 @@ final class AppModel {
                 try? await Task.sleep(for: .milliseconds(hot ? 400 : 1000))
                 await refresh()
             }
+        }
+    }
+
+    private func refreshControllers(hid: String) {
+        let names = GCController.controllers().compactMap { controller -> String? in
+            let raw = (controller.vendorName ?? controller.productCategory)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return raw.isEmpty ? "Controller" : raw
+        }
+        if names.isEmpty {
+            controllerLabel = hid.isEmpty ? "none" : hid
+            controllerConnected = hid != "none" && !hid.isEmpty
+        } else {
+            controllerLabel = names.joined(separator: ", ")
+            controllerConnected = true
         }
     }
 

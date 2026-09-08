@@ -241,13 +241,15 @@ public struct SteamServices: Sendable {
         exe: URL,
         credentials: SteamCredentials
     ) throws -> ProcessHandle {
+        var environment = [
+            "WINEPREFIX": prefix.path,
+            "WINEDEBUG": "-all",
+        ]
+        InputLayer.apply(into: &environment)
         let plan = LaunchPlan(
             executable: config.wineURL,
             arguments: Self.startArguments(exe: exe, credentials: credentials),
-            environment: [
-                "WINEPREFIX": prefix.path,
-                "WINEDEBUG": "-all",
-            ],
+            environment: environment,
             workingDirectory: exe.deletingLastPathComponent(),
             logURL: paths.logs.appendingPathComponent("steam-services.log")
         )

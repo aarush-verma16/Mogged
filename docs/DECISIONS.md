@@ -6,6 +6,13 @@ When you lock something, update [STATUS.md](STATUS.md) and [MILESTONES.md](MILES
 
 ---
 
+## ADR-016 — Wired Mac controllers pass through to the game
+
+- **Status:** accepted
+- **Decision:** A controller plugged into this Mac is detected in Mogged and passed through to the title. Steam Input stays the mapper; Mogged does not grow a remap UI. Play enables the hidden SDL HID bus, and Desk Job no longer launches with Steam Input muted (`-hushsteam`).
+- **Why:** Desk Job requires a pad. Steam signed in, but the game never saw a controller: launch flags blocked Steam Input, and the Mac pad was not exposed as a Windows device.
+- **Cost:** Some pads still need the Mac to grant the engine app input access. Bluetooth is not a v1 requirement.
+
 ## ADR-015 — Mogged signs Steam in on the command line; Steam's window is never shown
 
 - **Status:** accepted

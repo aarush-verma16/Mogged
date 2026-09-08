@@ -18,6 +18,9 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources/Fonts"),
+            ],
+            linkerSettings: [
+                .linkedFramework("GameController"),
             ]
         ),
     ]

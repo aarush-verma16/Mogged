@@ -15,7 +15,7 @@
   "executables": ["Aperture Desk Job.exe", "deskjob.exe"],
   "launch": {
     "args": [
-      "-game", "steampal", "-novr", "-hushsteam",
+      "-game", "steampal", "-novr",
       "-windowed", "-width", "1600", "-height", "900"
     ],
     "workingDirectory": "game",
@@ -44,7 +44,7 @@
     "durationSeconds": 60
   },
   "knownIssues": [
-    "Wants a controller. Boot and the first screen are enough for smoke.",
+    "Wants a wired controller. Steam Input needs a signed-in Steam and the pad plugged in before Play.",
     "Vulkan/Source 2 — not the D3D12 path.",
     "Windows build tries DX11 first. Without DXVK, Wine reports feature level 9.5 and it dies."
   ],

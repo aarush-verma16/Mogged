@@ -190,6 +190,7 @@ public actor RuntimeSupervisor {
         }
 
         BackendLauncher.ensureSteamInf(installRoot: install.path, profile: profile)
+        BackendLauncher.ensureSteamAppId(exe: exe, profile: profile)
         let plan = launcher.plan(
             profile: profile,
             exe: exe,
@@ -288,6 +289,27 @@ public actor RuntimeSupervisor {
         try? want.write(to: marker, atomically: true, encoding: .utf8)
     }
 
+    /// Written once per environment so Play does not pay for a `reg add` every time.
+    private func applyControllerBus(prefix: URL, config: BackendConfig) {
+        InputLayer.ensureHostAllowsControllers(wine: config.wineURL)
+        let marker = prefix.appendingPathComponent(".mogged-input")
+        if (try? String(contentsOf: marker, encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines) == "sdl"
+        {
+            return
+        }
+        let plan = launcher.winebusPlan(prefix: prefix, config: config)
+        guard let handle = try? ProcessHandle.spawn(plan) else { return }
+        _ = handle.waitUntilExit(timeout: 30)
+        let kill = launcher.wineserverKillPlan(prefix: prefix, config: config)
+        if let kill, let handle = try? ProcessHandle.spawn(kill) {
+            _ = handle.waitUntilExit(timeout: 15)
+        }
+        steamClient = nil
+        steamPrefix = nil
+        try? "sdl".write(to: marker, atomically: true, encoding: .utf8)
+    }
+
     /// Starts Steam if it is not up yet. Signing in takes seconds, so this reports
     /// state and the caller polls rather than blocking this actor.
     private func startSteamServices(
@@ -297,7 +319,26 @@ public actor RuntimeSupervisor {
         forceRetry: Bool = false,
         credentials: SteamCredentials? = nil
     ) -> SteamServicesState {
-        if SteamServices.isSignedIn(prefix: prefix) { return .ready }
+        if SteamServices.isSignedIn(prefix: prefix) {
+            if SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true {
+                return .ready
+            }
+            guard let exe = SteamServices.clientExe(prefix: prefix) else {
+                telemetry.record(TelemetryEvent(event: "steam.services.missing", titleId: profile.id))
+                return .notInstalled
+            }
+            guard let credentials = credentials ?? SteamCredentialStore.load(paths: paths) else {
+                telemetry.record(TelemetryEvent(event: "steam.services.noaccount", titleId: profile.id))
+                return .needsAccount
+            }
+            return spawnSteam(
+                profile: profile,
+                prefix: prefix,
+                config: config,
+                exe: exe,
+                credentials: credentials
+            )
+        }
 
         guard let exe = SteamServices.clientExe(prefix: prefix) else {
             telemetry.record(TelemetryEvent(event: "steam.services.missing", titleId: profile.id))
@@ -439,7 +480,12 @@ public actor RuntimeSupervisor {
     }
 
     private func inspectSteamServices(prefix: URL) -> SteamServicesState {
-        if SteamServices.isSignedIn(prefix: prefix) { return .ready }
+        if SteamServices.isSignedIn(prefix: prefix) {
+            if SteamServices.isClientAlive(prefix: prefix) || steamClient?.isRunning == true {
+                return .ready
+            }
+            return .signingIn
+        }
         guard SteamServices.clientExe(prefix: prefix) != nil else { return .notInstalled }
         guard SteamCredentialStore.load(paths: paths) != nil else { return .needsAccount }
         if SteamServices.isUpdating(prefix: prefix) { return .updating }
@@ -496,6 +542,7 @@ public actor RuntimeSupervisor {
             try? environment.markReady(prefix: prefix)
         }
         applyWindowDecoration(prefix: prefix, profile: profile, config: config)
+        applyControllerBus(prefix: prefix, config: config)
         launcher.overlayTranslationDLLs(prefix: prefix, profile: profile, config: config)
     }
 
@@ -521,7 +568,8 @@ public actor RuntimeSupervisor {
             steamRunning: snap.running,
             steamRoot: snap.root?.path,
             steamAccount: snap.account?.personaName ?? snap.account?.steamId,
-            steamAppCount: snap.apps.count
+            steamAppCount: snap.apps.count,
+            controller: InputLayer.statusLabel
         )
     }
 

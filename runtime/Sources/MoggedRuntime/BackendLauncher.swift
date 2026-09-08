@@ -71,6 +71,9 @@ public struct BackendLauncher: Sendable {
             env["DYLD_LIBRARY_PATH"] = joinedPath(molten.libDir, ProcessInfo.processInfo.environment["DYLD_LIBRARY_PATH"])
         }
 
+        InputLayer.apply(into: &env)
+        InputLayer.ensureHostAllowsControllers(wine: config.wineURL)
+
         if let extra = profile.launch?.env {
             for (key, value) in extra {
                 env[key] = value
@@ -133,6 +136,13 @@ public struct BackendLauncher: Sendable {
         try? body.write(to: inf, atomically: true, encoding: .utf8)
     }
 
+    /// steam_api looks next to the exe when the title was not started by Steam itself.
+    public static func ensureSteamAppId(exe: URL, profile: TitleProfile) {
+        let file = exe.deletingLastPathComponent().appendingPathComponent("steam_appid.txt")
+        if FileManager.default.fileExists(atPath: file.path) { return }
+        try? "\(profile.steamAppId)\n".write(to: file, atomically: true, encoding: .utf8)
+    }
+
     /// Mac driver keys that give the game window a native frame with traffic lights.
     public func windowDecorationPlan(prefix: URL, config: BackendConfig, value: String) -> LaunchPlan {
         LaunchPlan(
@@ -141,6 +151,38 @@ public struct BackendLauncher: Sendable {
                 "reg", "add", #"HKEY_CURRENT_USER\Software\Wine\Mac Driver"#,
                 "/v", "Decorated", "/t", "REG_SZ", "/d", value, "/f",
             ],
+            environment: [
+                "WINEPREFIX": prefix.path,
+                "WINEDEBUG": "-all",
+            ],
+            workingDirectory: prefix,
+            logURL: paths.logs.appendingPathComponent("wineboot.log")
+        )
+    }
+
+    /// SDL HID so a Mac-connected pad appears as a Windows controller.
+    public func winebusPlan(prefix: URL, config: BackendConfig) -> LaunchPlan {
+        LaunchPlan(
+            executable: config.wineURL,
+            arguments: [
+                "reg", "add", #"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\winebus"#,
+                "/v", "Enable SDL", "/t", "REG_DWORD", "/d", "1", "/f",
+            ],
+            environment: [
+                "WINEPREFIX": prefix.path,
+                "WINEDEBUG": "-all",
+            ],
+            workingDirectory: prefix,
+            logURL: paths.logs.appendingPathComponent("wineboot.log")
+        )
+    }
+
+    public func wineserverKillPlan(prefix: URL, config: BackendConfig) -> LaunchPlan? {
+        let sibling = config.wineURL.deletingLastPathComponent().appendingPathComponent("wineserver")
+        guard FileManager.default.isExecutableFile(atPath: sibling.path) else { return nil }
+        return LaunchPlan(
+            executable: sibling,
+            arguments: ["-k"],
             environment: [
                 "WINEPREFIX": prefix.path,
                 "WINEDEBUG": "-all",

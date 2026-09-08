@@ -51,6 +51,7 @@ struct LaunchPathTests {
         #expect(plan.environment["DXVK_STATE_CACHE_PATH"] == cache.path)
         #expect(plan.environment["DXVK_FRAME_RATE"] == "60")
         #expect(plan.environment["WINEDLLOVERRIDES"] == "d3d11,d3d10core=n,b")
+        #expect(plan.environment["SDL_JOYSTICK_HIDAPI"] == "1")
         #expect(plan.workingDirectory.lastPathComponent == "tmp")
     }
 
@@ -554,15 +555,41 @@ struct LaunchPathTests {
         #expect(plan.arguments.contains("-game"))
         #expect(plan.arguments.contains("steampal"))
         #expect(plan.arguments.contains("-novr"))
+        #expect(!plan.arguments.contains("-hushsteam"))
         #expect(plan.workingDirectory.lastPathComponent == "game")
         #expect(plan.environment["WINEDLLOVERRIDES"] == "d3d11,d3d10core=n,b")
         #expect(plan.environment["SteamAppId"] == "1902490")
+        #expect(plan.environment["SDL_JOYSTICK_HIDAPI"] == "1")
+        #expect(plan.environment["SDL_JOYSTICK_MFI"] == "1")
 
         BackendLauncher.ensureSteamInf(installRoot: install, profile: profile)
         let inf = game.appendingPathComponent("steam.inf")
         let text = try String(contentsOf: inf, encoding: .utf8)
         #expect(text.contains("appID=1902490"))
         #expect(text.contains("steampal"))
+    }
+
+    @Test
+    func macControllersArePassedIntoTheTitleEnvironment() throws {
+        let home = try scratchHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let launcher = BackendLauncher(paths: RuntimePaths(root: home))
+        let plan = launcher.winebusPlan(
+            prefix: home.appendingPathComponent("prefix"),
+            config: BackendConfig(wine: "/opt/homebrew/bin/wine64")
+        )
+        #expect(plan.arguments.contains("Enable SDL"))
+        #expect(plan.arguments.contains("REG_DWORD"))
+        #expect(InputLayer.environment()["SDL_JOYSTICK_MFI"] == "1")
+        #expect(!InputLayer.statusLabel.isEmpty)
+        #expect(launcher.wineserverKillPlan(prefix: home.appendingPathComponent("prefix"), config: BackendConfig(wine: "/opt/homebrew/bin/wine64")) == nil)
+        let exe = home.appendingPathComponent("game/deskjob.exe")
+        try FileManager.default.createDirectory(at: exe.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data().write(to: exe)
+        let profile = try ProfileLoader.load().first { $0.id == "aperture-desk-job" }!
+        BackendLauncher.ensureSteamAppId(exe: exe, profile: profile)
+        let appId = try String(contentsOf: exe.deletingLastPathComponent().appendingPathComponent("steam_appid.txt"), encoding: .utf8)
+        #expect(appId.contains("1902490"))
     }
 
     @Test

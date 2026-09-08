@@ -10,7 +10,10 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MoggedRuntime"
+            name: "MoggedRuntime",
+            linkerSettings: [
+                .linkedFramework("IOKit"),
+            ]
         ),
         .executableTarget(
             name: "mogged-runtime",

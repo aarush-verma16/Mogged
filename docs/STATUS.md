@@ -25,11 +25,12 @@ Done:
 - **Play with a code now starts a new sign-in instead of repeating the last failure.** 2026-09-08: entering a Guard code and pressing Play still showed "needs a one-time code" because the previous denial was still the live log, and the typed code was not always flushed to disk before Play. Play now saves first, archives that denial, and starts `-login` with the new code.
 - **A denied login now closes Steam's blank window.** 2026-09-08: Play would ask for a code and still leave Steam's CEF window up because polling no longer killed the client. Once this attempt is denied, Mogged stops `steam.exe` and `steamwebhelper.exe`.
 - **You only need one Guard code, once.** 2026-09-08: the graphical Steam app ignores a pasted code on `-login`, so every Play emailed a new one and none of them ever matched. Play now submits the code through SteamCMD in the same folder, which is what actually accepts it, then starts Steam. After that succeeds, no more codes.
+- **Wired controllers pass through on Play.** 2026-09-08: Mogged detects a plugged-in pad, enables the SDL HID bus in the title environment, and Desk Job no longer launches with Steam Input muted (`-hushsteam`). Plug in the pad, then Play.
 - **Fixed an orphaned-client bug that looked like a "random" black window.** 2026-09-05: quitting Mogged never stopped anything it started, so a denied Steam login (see below) kept retrying forever as a detached process across app restarts, unrelated to any Play click — that detached process's own window is almost certainly what "randomly" appeared. Two fixes landed together: Mogged now stops the game and any Steam client it started when it quits (`RuntimeSupervisor.stopAll()`, wired to `applicationShouldTerminate`), and sweeps for a denied client left over from a previous session on every app start (`cleanupOrphanedSteamClients`). That sweep only worked once a **second** bug was found and fixed: `pkill -f` treats its pattern as a regex, and "Program Files (x86)" contains unescaped regex metacharacters that made every kill attempt silently match nothing — confirmed by reproducing it directly against a live process before and after escaping.
 
 Not done:
 
-- **Steam Input is still not initialized.** Desk Job shows "Unable to initialize Steam Input" over the rendered scene. Play now submits the one-time code through SteamCMD in the same folder as the Steam client (ADR-015). Confirming that one successful code writes device trust and Steam Input comes up is still untested on this Mac.
+- **Steam Input / controller in-game is untested on this Mac.** Sign-in and pad passthrough are wired (ADR-015, ADR-016). Confirm Desk Job actually accepts the pad after Play.
 - No benchmark file yet. The 60 FPS above is the game's own overlay on a title screen, not `tools/benchmark` output, and not the quality bar.
 - Homebrew `wine-stable` and `gstreamer-runtime` casks are Gatekeeper-disabled (2026-09-01). GStreamer.framework is **not** installed; Wine still ran `cmd.exe`.
 - vkd3d-proton DLLs not installed (Marvel Rivals D3D12).
@@ -62,6 +63,8 @@ macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. E
 
 | ID | Topic | State |
 | --- | --- | --- |
+| ADR-016 | Wired Mac controllers pass through to the game | accepted |
+| ADR-015 | Steam signs in on the command line; window hidden | accepted |
 | ADR-013 | Steam runs in the title environment for SteamAPI / Steam Input | accepted |
 | ADR-012 | First boot = Aperture Desk Job (safe, ~3 GB) | accepted |
 | ADR-011 | v1 on this Mac; optimization layer is ours | accepted |
@@ -83,7 +86,7 @@ macOS 26 showed **Support Ending for Intel-based Apps** on `Wine Staging.app`. E
 
 | Role | Title | State |
 | --- | --- | --- |
-| First (safe) | Aperture Desk Job (`1902490`) | **smoke**; installed; **boots and draws**; Steam Input pending |
+| First (safe) | Aperture Desk Job (`1902490`) | **smoke**; installed; **boots and draws**; controller passthrough wired |
 | Next | Apex Legends (`1172470`) | pinned; heavy; not on disk |
 | Then | Marvel Rivals (`2767030`) | pinned; heavy; not on disk |
 | Later | Spider-Man Remastered (`1817070`) | profile exists; **not in the library until M2 / Steam has it** |

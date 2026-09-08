@@ -11,6 +11,7 @@ public struct RuntimeInspect: Sendable, Equatable {
     public let steamRoot: String?
     public let steamAccount: String?
     public let steamAppCount: Int
+    public let controller: String
 
     public init(
         wine: String?,
@@ -22,7 +23,8 @@ public struct RuntimeInspect: Sendable, Equatable {
         steamRunning: Bool,
         steamRoot: String?,
         steamAccount: String?,
-        steamAppCount: Int
+        steamAppCount: Int,
+        controller: String = "none"
     ) {
         self.wine = wine
         self.wineReady = wineReady
@@ -34,6 +36,7 @@ public struct RuntimeInspect: Sendable, Equatable {
         self.steamRoot = steamRoot
         self.steamAccount = steamAccount
         self.steamAppCount = steamAppCount
+        self.controller = controller
     }
 
     public static let empty = RuntimeInspect(
@@ -46,7 +49,8 @@ public struct RuntimeInspect: Sendable, Equatable {
         steamRunning: false,
         steamRoot: nil,
         steamAccount: nil,
-        steamAppCount: 0
+        steamAppCount: 0,
+        controller: "none"
     )
 }
 
