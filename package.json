@@ -7,6 +7,8 @@
     "dev": "zsh scripts/run-mogged.sh",
     "build": "swift build --package-path apps/launcher",
     "test": "zsh scripts/test.sh",
+    "test:watch": "zsh scripts/test.sh --watch",
+    "test:i": "zsh scripts/test.sh -i",
     "runtime": "swift run --package-path runtime mogged-runtime",
     "bootstrap": "zsh scripts/bootstrap-runtime.sh",
     "fetch": "zsh scripts/fetch-windows-title.sh"

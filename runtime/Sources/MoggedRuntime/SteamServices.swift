@@ -3,7 +3,7 @@ import Foundation
 /// Steam Input / SteamAPI need a signed-in Steam client inside the same environment.
 /// SteamCMD only fetches files, so titles that call SteamAPI_Init need this too.
 /// Where a title's Steam session stands, in the order Play cares about.
-public enum SteamServicesState: Sendable, Equatable {
+public enum SteamServicesState: Sendable, Equatable, CaseIterable {
     case ready
     case signingIn
     /// The client is applying its own update. Killing it here just loops the window.
@@ -358,7 +358,10 @@ public struct SteamServices: Sendable {
               let log = try? String(contentsOf: dir.appendingPathComponent("logs/\(file)"), encoding: .utf8),
               !log.isEmpty
         else { return nil }
-        return log.components(separatedBy: marker).last ?? log
+        guard let range = log.range(of: marker, options: .backwards) else { return log }
+        let before = log[..<range.lowerBound]
+        let lineStart = before.lastIndex(of: "\n").map { log.index(after: $0) } ?? log.startIndex
+        return String(log[lineStart...])
     }
 
     static func updateInProgress(_ session: String) -> Bool {

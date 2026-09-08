@@ -19,18 +19,18 @@ public struct TitleProfile: Codable, Sendable, Equatable, Identifiable {
     public let research: [String: String]?
     public let pinned: Bool?
 
-    public enum Role: String, Codable, Sendable {
+    public enum Role: String, Codable, Sendable, CaseIterable {
         case smoke
         case primaryDemo = "primary-demo"
         case generalize
         case catalog
     }
 
-    public enum GraphicsAPI: String, Codable, Sendable {
+    public enum GraphicsAPI: String, Codable, Sendable, CaseIterable {
         case d3d9, d3d11, d3d12, vulkan, opengl, mixed
     }
 
-    public enum AntiCheat: String, Codable, Sendable {
+    public enum AntiCheat: String, Codable, Sendable, CaseIterable {
         case none, vac, eac, battleye, other
     }
 
